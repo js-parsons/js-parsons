@@ -1,20 +1,40 @@
 var parsons2d = function(options) {
 	this.options = options;
+        //
 	var indents = [];
 	var X_INDENT = options.xIndent || 50;
-	function getIndent(leftDiff, index) {
-		var new_indent = indents[index].indent
-				+ Math.floor(leftDiff / X_INDENT);
-		indents[index].indent = new_indent;
-		return new_indent;
+	function updateIndent(leftDiff, id) {
+            var code_line = getElem(id);
+            var new_indent = code_line.indent
+                + Math.floor(leftDiff / X_INDENT);
+            code_line.indent = new_indent;
+            return new_indent;
 	};
-	function getElemIndex(elem) {
+        function getElem(id) {
+            return indents[getElemIndex(id)];
+        }
+	function getElemIndex(id) {
 		for ( var i = 0; i < indents.length; i++) {
-			if (indents[i].id == elem.id) {
+			if (indents[i].id == id) {
 				return i;
 			}
 		}
 	};
+        function getFeedback() {
+            var usersCode = $("#" + this.options.sortableId).sortable('toArray');
+            for ( var i = 0; i < indents.length; i++) {
+                var code_line = getElem(usersCode[i]);
+                if (indents[i].code !== code_line.code) {
+                    alert("line " + (i+1) + " is not correct!");
+                    return;
+                }
+                if (indents[i].indent !== this.options.codeLines[i][0]) {
+                    alert("line " + (i+1) + " is not indented correctly");
+                    return;
+                }                
+            }
+            alert("ok");
+        };
 	function init() {
 		var codelines = [];
 		for (var i = 0; i < options.codeLines.length; i++) {
@@ -41,19 +61,20 @@ var parsons2d = function(options) {
 				stop : function(event, ui) {
 					var parentLeft = ui.item.parent().position().left;
 					var lineLeft = ui.item.offset().left;
-					var ind = getIndent(ui.position.left
-							- ui.item.parent().offset().left,
-							getElemIndex(ui.item[0]));
+					var ind = updateIndent(ui.position.left - ui.item.parent().offset().left,
+                                                               ui.item[0].id);
 					ui.item.css("margin-left", X_INDENT * ind + "px");
 				},
 				grid : [ X_INDENT, 1 ]
 			});
 	return {
 		getFeedback : function() {
-			 alert("feedback");
+			 getFeedback();
 		},
 		shuffleLines : function() {
 			 init();
 		}
 	};
+
+        
 };
