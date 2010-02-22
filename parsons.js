@@ -37,13 +37,25 @@ var parsons2d = function(options) {
         };
 	function init() {
 		var codelines = [];
-		for (var i = 0; i < options.codeLines.length; i++) {
-			indents[i] = {
-					'indent' : 0,
-					'code' : options.codeLines[i][1],
-					'id' : 'codeline' + i
-			};
-			codelines[i] = '<li id="codeline' + i + '">' + options.codeLines[i][1] + '<\/li>';
+		if (typeof(options.codeLines) === "string") {
+			codelines = options.codeLines.split('\n');
+			for (var i = 0; i < codelines.length; i++) {
+				indents[i] = {
+						'indent' : 0,
+						'code' : codelines[i],
+						'id' : 'codeline' + i
+				};
+				codelines[i] = '<li id="codeline' + i + '">' + codelines[i] + '<\/li>';
+			}
+		} else {
+			for (var i = 0; i < options.codeLines.length; i++) {
+				indents[i] = {
+						'indent' : 0,
+						'code' : options.codeLines[i][1],
+						'id' : 'codeline' + i
+				};
+				codelines[i] = '<li id="codeline' + i + '">' + options.codeLines[i][1] + '<\/li>';
+			}
 		}
 		var swap1, swap2, tmp;
 		for (i = options.codeLines.length*2; i > 0; i--) {
