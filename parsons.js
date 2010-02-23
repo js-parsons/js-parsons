@@ -20,19 +20,76 @@ var parsons2d = function(options) {
 			}
 		}
 	};
+        
+        function normalizeIndents(lines) {
+
+            var normalized = [];
+            var previous_indentation;
+            var new_line;
+
+            for ( var i = 0; i < lines.length; i++ ) {
+                //create shallow copy from the line object
+                new_line = jQuery.extend({}, lines[i]);
+                if (i == 0) {
+                    new_line.indent = 0;
+                } else if (lines[i].indent == lines[i-i].indent) {
+                    new_line.indent = normalized[i-1].indent;
+                } else if (lines[i].indent > lines[i-1].indent) {
+                    new_line.indent = normalized[i-1].indent + 1;
+                } else {
+                    // indentation van be -1 if no matching indentation exists, i.e. IndentationError in Python
+                    new_line.indent = function(index) {
+                            //return line index from the previous lines with matchind indentation
+                            for (var i = index-1; i >= 0; i--) {
+                                if (lines[i].indent == lines[index].indent) {
+                                    return i;
+                                }
+                            }
+                           return -1;
+                        }(i);                    
+                }
+                normalized[i] = new_line;
+            }
+            return normalized;
+        };
+        function getModifiedCode() {
+            //ids of the the modified code
+            var users_code_ids = $("#" + this.options.sortableId).sortable('toArray');
+            var lines_to_return = [];
+            for ( var i = 0; i < users_code_ids.length; i++ ) {
+                lines_to_return[i] = getLineById(users_code_ids[i]);
+            }
+            return lines_to_return;
+        }
+
         function getFeedback() {
-            var usersCode = $("#" + this.options.sortableId).sortable('toArray');
-            for ( var i = 0; i < modified_lines.length; i++) {
-                var code_line = getLineById(usersCode[i]);
-                if (modified_lines[i].code !== code_line.code) {
+            var student_code = normalizeIndents(getModifiedCode());
+
+            for (var i = 0; i < student_code.length; i++) {
+                var code_line = student_code[i];
+                if (code_line.code !== options.codeLines[i][1]) {
                     alert("line " + (i+1) + " is not correct!");
                     return;
                 }
-                if (modified_lines[i].indent !== this.options.codeLines[i][0]) {
+                if (code_line.indent !== this.options.codeLines[i][0]) {                    
                     alert("line " + (i+1) + " is not indented correctly");
                     return;
-                }                
+                }
             }
+//             //ids of the the modified code
+//             var usersCode = $("#" + this.options.sortableId).sortable('toArray');
+//             for ( var i = 0; i < modified_lines.length; i++) {
+//                 var code_line = getLineById(usersCode[i]);
+//                 if (modified_lines[i].code !== code_line.code) {
+//                     alert("line " + (i+1) + " is not correct!");
+//                     return;
+//                 }
+//                 if (modified_lines[i].indent !== this.options.codeLines[i][0]) {
+                    
+//                     alert("line " + (i+1) + " is not indented correctly");
+//                     return;
+//                 }                
+//             }
             alert("ok");
         };
 	function init() {
