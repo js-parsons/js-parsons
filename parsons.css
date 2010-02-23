@@ -1,0 +1,44 @@
+.indent-1 {
+	padding-left: 0px;
+}
+
+.indent-2 {
+	padding-left: 100px;
+}
+
+.indent-3 {
+	padding-left: 200px;
+}
+
+.sortable-code {
+	list-style: None;
+	padding-left: 0px;
+	margin-left: 50px;
+	font-size: 200%;
+	font-family: monospace;
+}
+
+.sortable-code li {
+    -moz-border-radius:10px 10px 10px 10px;
+    -webkit-border-radius:10px 10px 10px 10px;
+    background-color:#EFEFEF;
+    border:1px solid lightgray;
+    padding:10px;
+    margin-top: 5px;
+}
+
+li.incorrectIndent {
+    border-left: 10px solid red;
+}
+
+li.correctIndent {
+    border-left: 10px solid green;
+}
+
+li.incorrectPosition {
+    background-color: #fee;
+}
+
+li.correctPosition {
+    background-color: #efe;
+}
