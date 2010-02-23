@@ -1,0 +1,49 @@
+<html>
+    <head>
+        <title>parsons</title>
+		<link rel="stylesheet" href="parsons.css"/>
+        <link href="lib/prettify.css" type="text/css" rel="stylesheet" />
+        <script type="text/javascript" src="lib/prettify.js"></script>
+    </head>
+    <body>
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.js">
+    </script>
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.7.2/jquery-ui.js">
+    </script>
+    <script type="text/javascript" src="parsons.js">
+    </script>
+    <script type="text/javascript">
+        var initial = [[0, 'def bubblesort(l):'], [1, 'for passesLeft in range(len(l)-1, 0, -1):'], 
+		              [2, 'for index in range(passesLeft):'], 
+					  [3, 'if l[index] < l[index + 1]:<br/><span style="padding-left:50px;">l[index], l[index + 1] = l[index + 1], l[index]</span>'], 
+					  [1, 'return l']];
+        $(document).ready(function(){
+            var parson = parsons2d({
+                'sortableId': 'sortable',
+				'trashId': 'sortableTrash',
+                'codeLines': initial
+            });
+            $("#newInstanceLink").click(function(event){
+                event.preventDefault();
+                parson.shuffleLines();
+            });
+            $("#feedbackLink").click(function(event){
+                event.preventDefault();
+                parson.getFeedback();
+            });
+            
+        });
+    </script>
+    </head>
+    <body>
+    	<div id="sortableTrash" class="sortable-code"><p>Trash</p>
+		</div>
+        <div id="sortable" class="sortable-code"><p>Solution</p>
+		</div>
+		<div style="clear:both;"></div>
+        <p>
+            <a href="#" id="newInstanceLink">New instance</a>
+            <a href="#" id="feedbackLink">Get feedback</a>
+        </p>
+    </body>
+</html>
