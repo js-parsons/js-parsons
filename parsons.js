@@ -68,10 +68,16 @@ var parsons2d = function(options) {
             for (var i = 0; i < student_code.length; i++) {
                 var code_line = student_code[i];
                 if (code_line.code !== options.codeLines[i][1]) {
+                    if (this.options.incorrectSound && $.sound) {
+                    	$.sound.play(this.options.incorrectSound);
+                    }
                     alert("line " + (i+1) + " is not correct!");
                     return;
                 }
                 if (code_line.indent !== this.options.codeLines[i][0]) {                    
+                    if (this.options.incorrectSound && $.sound) {
+                    	$.sound.play(this.options.incorrectSound);
+                    }
                     alert("line " + (i+1) + " is not indented correctly");
                     return;
                 }
@@ -90,6 +96,9 @@ var parsons2d = function(options) {
 //                     return;
 //                 }                
 //             }
+            if (this.options.correctSound && $.sound) {
+            	$.sound.play(this.options.correctSound);
+            }
             alert("ok");
         };
 	function init() {
@@ -123,6 +132,9 @@ var parsons2d = function(options) {
 			codelines[swap2] = tmp;
 		}
 		$("#" + this.options.sortableId).html(codelines.join(''));
+		if (typeof(this.options.prettyPrint) === "undefined" || this.options.prettyPrint) {
+			prettyPrint();
+		}
 	};
 	init();
 	$('#sortable').sortable(
