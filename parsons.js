@@ -45,7 +45,7 @@ var parsons2d = function(options) {
 						'code' : codelines[i],
 						'id' : 'codeline' + i
 				};
-				codelines[i] = '<li id="codeline' + i + '">' + codelines[i] + '<\/li>';
+				codelines[i] = '<li id="codeline' + i + '" class="prettyprint lang-py">' + codelines[i] + '<\/li>';
 			}
 		} else {
 			for (var i = 0; i < options.codeLines.length; i++) {
@@ -54,7 +54,7 @@ var parsons2d = function(options) {
 						'code' : options.codeLines[i][1],
 						'id' : 'codeline' + i
 				};
-				codelines[i] = '<li id="codeline' + i + '">' + options.codeLines[i][1] + '<\/li>';
+				codelines[i] = '<li id="codeline' + i + '" class="prettyprint lang-py">' + options.codeLines[i][1] + '<\/li>';
 			}
 		}
 		var swap1, swap2, tmp;
