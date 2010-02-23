@@ -11,14 +11,21 @@
 }
 
 .sortable-code {
-	list-style: None;
 	padding-left: 0px;
 	margin-left: 50px;
-	font-size: 200%;
-	font-family: monospace;
+	float: left;
+	width: 500px;
 }
-
-.sortable-code li {
+.ui-sortable {
+    font-size: 120%;
+    font-family: monospace;
+    list-style: None;
+	min-height: 150px;
+	background-color: #efefff;
+	padding-left: 0;
+	margin-left: 0;
+}
+.ui-sortable li {
     -moz-border-radius:10px 10px 10px 10px;
     -webkit-border-radius:10px 10px 10px 10px;
     background-color:#EFEFEF;

@@ -9,9 +9,11 @@ var parsons2d = function(options) {
             'correctIndent' : 'correctIndent',
             'incorrectIndent' : 'incorrectIndent'};
     function updateIndent(leftDiff, id) {
+        console.log("diff "+leftDiff);
         var code_line = getLineById(id);
         var new_indent = code_line.indent
         + Math.floor(leftDiff / X_INDENT);
+        new_indent = Math.max(0, new_indent);
         code_line.indent = new_indent;
         return new_indent;
     };
@@ -59,7 +61,7 @@ var parsons2d = function(options) {
     };
     function getModifiedCode() {
         //ids of the the modified code
-        var users_code_ids = $("#" + this.options.sortableId).sortable('toArray');
+        var users_code_ids = $("#ul-" + this.options.sortableId).sortable('toArray');
         var lines_to_return = [];
         for ( var i = 0; i < users_code_ids.length; i++ ) {
             lines_to_return[i] = getLineById(users_code_ids[i]);
@@ -97,7 +99,7 @@ var parsons2d = function(options) {
         alert("ok");
     };
     function clearFeedback() {
-        var li_elements = $("#" + options.sortableId + " li");
+        var li_elements = $("#ul-" + options.sortableId + " li");
         for (var style in FEEDBACK_STYLES) {
             li_elements.removeClass(FEEDBACK_STYLES[style]);
         }
@@ -133,35 +135,54 @@ var parsons2d = function(options) {
             codelines[swap1] = codelines[swap2];
             codelines[swap2] = tmp;
         }
-        $("#" + this.options.sortableId).html(codelines.join(''));
+        if (this.options.trashId) {
+            $("#" + this.options.trashId).html('<p>Trash</p><ul id="ul-' + this.options.trashId + '">'+codelines.join('')+'</ul>');
+            $("#" + this.options.sortableId).html('<p>Solution</p><ul id="ul-' + this.options.sortableId + '"></ul>');
+        } else {
+            $("#" + this.options.sortableId).html('<ul id="ul-' + this.options.sortableId + '">'+codelines.join('')+'</ul>');
+        }
         if (typeof(this.options.prettyPrint) === "undefined" || this.options.prettyPrint) {
             prettyPrint();
         }
     };
     init();
-    $('#sortable').sortable({
+    var sortable = $("#ul-" + this.options.sortableId).sortable({
         start : function(event, ui) {
-        if (feedback_exists) {
-            clearFeedback(); 
-        }
-    },
-    stop : function(event, ui) {
-        var parentLeft = ui.item.parent().position().left;
-        var lineLeft = ui.item.offset().left;
-        var ind = updateIndent(ui.position.left - ui.item.parent().offset().left,
-                ui.item[0].id);
-        ui.item.css("margin-left", X_INDENT * ind + "px");
-    },
-    grid : [ X_INDENT, 1 ]
+            if (feedback_exists) {
+                clearFeedback(); 
+            }
+        },
+        stop : function(event, ui) {
+            if ($(event.target)[0] != ui.item.parent()[0]) {
+                return;
+            }
+            var ind = updateIndent(ui.position.left - ui.item.parent().offset().left,
+                                    ui.item[0].id);
+            ui.item.css("margin-left", X_INDENT * ind + "px");
+        },
+        receive : function(event, ui) {
+            var ind = updateIndent(ui.position.left - ui.item.parent().offset().left,
+                                    ui.item[0].id);
+            ui.item.css("margin-left", X_INDENT * ind + "px");
+        },
+        grid : [ X_INDENT, 1 ]
     });
+    if (this.options.trashId) {
+        var trash = $("#ul-" + this.options.trashId).sortable({
+            connectWith: sortable,
+            receive: function(event, ui) {
+                getLineById(ui.item[0].id).indent = 0;
+                ui.item.css("margin-left", "0");
+            }
+        });
+        sortable.sortable('option', 'connectWith', trash);
+    }
     return {
         getFeedback : function() {
-        getFeedback();
-    },
-    shuffleLines : function() {
-        init();
-    }
+            getFeedback();
+        },
+        shuffleLines : function() {
+            init();
+        }
     };
-
-
 };
