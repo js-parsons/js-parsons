@@ -1,6 +1,12 @@
 var parsons2d = function(options) {
-    this.options = options;
-    //
+    // options:
+    //  - codeLines: codelines to be used, array with 0 includes indent and 1 the code
+    //  - sortableId: id of the element where the codelines should be added
+    //  - trashId: if two sets of codelines are used, this is where the additional lines should be
+    //  - prettyPrint: if set to false, the highlighting of the code is not shown.
+    //  - incorrectSound: relative url to a sound file which is played on error
+    //  - correctSound: relative url to a sound file which is played when solved correctly
+    //  - xIndent: width of one indent as a number of pixels, defaults to 50 
     var feedback_exists = false;
     var modified_lines = [];
     var X_INDENT = options.xIndent || 50;
@@ -61,7 +67,7 @@ var parsons2d = function(options) {
     };
     function getModifiedCode() {
         //ids of the the modified code
-        var users_code_ids = $("#ul-" + this.options.sortableId).sortable('toArray');
+        var users_code_ids = $("#ul-" + options.sortableId).sortable('toArray');
         var lines_to_return = [];
         for ( var i = 0; i < users_code_ids.length; i++ ) {
             lines_to_return[i] = getLineById(users_code_ids[i]);
@@ -75,16 +81,16 @@ var parsons2d = function(options) {
         for (var i = 0; i < student_code.length; i++) {
             var code_line = student_code[i];
             if (code_line.code !== options.codeLines[i][1]) {
-                if (this.options.incorrectSound && $.sound) {
-                    $.sound.play(this.options.incorrectSound);
+                if (options.incorrectSound && $.sound) {
+                    $.sound.play(options.incorrectSound);
                 }
                 $("#" + code_line.id).addClass("incorrectPosition");
                 alert("line " + (i+1) + " is not correct!");
                 return;
             }
-            if (code_line.indent !== this.options.codeLines[i][0]) {                    
-                if (this.options.incorrectSound && $.sound) {
-                    $.sound.play(this.options.incorrectSound);
+            if (code_line.indent !== options.codeLines[i][0]) {                    
+                if (options.incorrectSound && $.sound) {
+                    $.sound.play(options.incorrectSound);
                 }
                 $("#" + code_line.id).addClass("incorrectIndent");
                 alert("line " + (i+1) + " is not indented correctly");
@@ -92,8 +98,8 @@ var parsons2d = function(options) {
             }
         }
 
-        if (this.options.correctSound && $.sound) {
-            $.sound.play(this.options.correctSound);
+        if (options.correctSound && $.sound) {
+            $.sound.play(options.correctSound);
         }
 
         alert("ok");
@@ -135,18 +141,18 @@ var parsons2d = function(options) {
             codelines[swap1] = codelines[swap2];
             codelines[swap2] = tmp;
         }
-        if (this.options.trashId) {
-            $("#" + this.options.trashId).html('<p>Trash</p><ul id="ul-' + this.options.trashId + '">'+codelines.join('')+'</ul>');
-            $("#" + this.options.sortableId).html('<p>Solution</p><ul id="ul-' + this.options.sortableId + '"></ul>');
+        if (options.trashId) {
+            $("#" + options.trashId).html('<p>Trash</p><ul id="ul-' + options.trashId + '">'+codelines.join('')+'</ul>');
+            $("#" + options.sortableId).html('<p>Solution</p><ul id="ul-' + options.sortableId + '"></ul>');
         } else {
-            $("#" + this.options.sortableId).html('<ul id="ul-' + this.options.sortableId + '">'+codelines.join('')+'</ul>');
+            $("#" + options.sortableId).html('<ul id="ul-' + options.sortableId + '">'+codelines.join('')+'</ul>');
         }
-        if (typeof(this.options.prettyPrint) === "undefined" || this.options.prettyPrint) {
+        if (typeof(options.prettyPrint) === "undefined" || options.prettyPrint) {
             prettyPrint();
         }
     };
     init();
-    var sortable = $("#ul-" + this.options.sortableId).sortable({
+    var sortable = $("#ul-" + options.sortableId).sortable({
         start : function(event, ui) {
             if (feedback_exists) {
                 clearFeedback(); 
@@ -167,8 +173,8 @@ var parsons2d = function(options) {
         },
         grid : [ X_INDENT, 1 ]
     });
-    if (this.options.trashId) {
-        var trash = $("#ul-" + this.options.trashId).sortable({
+    if (options.trashId) {
+        var trash = $("#ul-" + options.trashId).sortable({
             connectWith: sortable,
             receive: function(event, ui) {
                 getLineById(ui.item[0].id).indent = 0;
