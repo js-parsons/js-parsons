@@ -34,6 +34,10 @@
     margin-top: 5px;
 }
 
+ul.incorrect {
+	background-color: #ffefef;
+}
+
 li.incorrectIndent {
     border-left: 10px solid red;
 }
