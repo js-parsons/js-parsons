@@ -1,4 +1,5 @@
 var parsons2d = function(options) {
+    $ = jQuery;
     // options:
     //  - codeLines: codelines to be used, array with 0 includes indent and 1 the code
     //  - sortableId: id of the element where the codelines should be added
@@ -7,8 +8,21 @@ var parsons2d = function(options) {
     //  - incorrectSound: relative url to a sound file which is played on error
     //  - correctSound: relative url to a sound file which is played when solved correctly
     //  - xIndent: width of one indent as a number of pixels, defaults to 50 
+	var codeLine = function(table_row, id) {
+		
+		return {
+			id: id,
+			code: table_row[1],
+			indent: table_row[0]
+		};
+				
+		  
+	};
+	
     var feedback_exists = false;
     var modified_lines = [];
+    var model_solution = [];
+    var extra_lines = [];
     var X_INDENT = options.xIndent || 50;
     var FEEDBACK_STYLES = { 'correctPosition' : 'correctPosition',
             'incorrectPosition' : 'incorrectPosition',
@@ -73,31 +87,43 @@ var parsons2d = function(options) {
             lines_to_return[i] = getLineById(users_code_ids[i]);
         }
         return lines_to_return;
-    }
+    };
+    
+    function displayError(message) {
+    	if (options.incorrectSound && $.sound) {
+            $.sound.play(options.incorrectSound);
+        }
+    	alert(message);
+    };
+    
     function getFeedback() {
         feedback_exists = true;
         var student_code = normalizeIndents(getModifiedCode());
-
-        for (var i = 0; i < student_code.length; i++) {
+        var lines_to_check = Math.min(student_code.length, model_solution.length)
+        
+        for (var i = 0; i < lines_to_check; i++) {
             var code_line = student_code[i];
-            if (code_line.code !== options.codeLines[i][1]) {
-                if (options.incorrectSound && $.sound) {
-                    $.sound.play(options.incorrectSound);
-                }
+            var model_line = model_solution[i]
+            if (code_line.code !== model_line.code) {
+            	displayError("line " + (i+1) + " is not correct!");
                 $("#" + code_line.id).addClass("incorrectPosition");
-                alert("line " + (i+1) + " is not correct!");
                 return;
             }
-            if (code_line.indent !== options.codeLines[i][0]) {                    
-                if (options.incorrectSound && $.sound) {
-                    $.sound.play(options.incorrectSound);
-                }
-                $("#" + code_line.id).addClass("incorrectIndent");
-                alert("line " + (i+1) + " is not indented correctly");
+            if (code_line.indent !== model_line.indent) {
+            	displayError("line " + (i+1) + " is not indented correctly");
+            	$("#" + code_line.id).addClass("incorrectIndent");
                 return;
             }
         }
-
+        
+        if (model_solution.length < student_code.length) {
+        	displayError("Too many lines in your solution");
+        	return;        	
+        } else if (model_solution.length > student_code.length){
+        	displayError("Too few lines in your solution");
+        	return;
+        }        
+        
         if (options.correctSound && $.sound) {
             $.sound.play(options.correctSound);
         }
@@ -125,12 +151,14 @@ var parsons2d = function(options) {
             }
         } else {
             for (var i = 0; i < options.codeLines.length; i++) {
-                modified_lines[i] = {
-                        'indent' : 0,
-                        'code' : options.codeLines[i][1],
-                        'id' : 'codeline' + i
-                };
+            	modified_lines[i] = codeLine(options.codeLines[i], 'codeline' + i);
+                if (options.codeLines[i].indent < 0) {
+                	extra_lines.push(codeLine(options.codeLines[i]));
+                } else {
+                	model_solution.push(codeLine(options.codeLines[i]));
+                }
                 codelines[i] = '<li id="codeline' + i + '" class="prettyprint lang-py">' + options.codeLines[i][1] + '<\/li>';
+                           
             }
         }
         var swap1, swap2, tmp;
