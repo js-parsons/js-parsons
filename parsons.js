@@ -57,7 +57,7 @@ var parsons2d = function(options) {
             new_line = jQuery.extend({}, lines[i]);
             if (i == 0) {
                 new_line.indent = 0;
-            } else if (lines[i].indent == lines[i-i].indent) {
+            } else if (lines[i].indent == lines[i-1].indent) {
                 new_line.indent = normalized[i-1].indent;
             } else if (lines[i].indent > lines[i-1].indent) {
                 new_line.indent = normalized[i-1].indent + 1;
@@ -145,6 +145,7 @@ var parsons2d = function(options) {
         var codelines = [];
         for (var i = 0; i < options.codeLines.length; i++) {
             modified_lines[i] = codeLine(options.codeLines[i], 'codeline' + i);
+            modified_lines[i].indent = 0;
             if (modified_lines[i].indent < 0) {
                 extra_lines.push(codeLine(options.codeLines[i]));
             } else {
