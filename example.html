@@ -13,10 +13,11 @@
     <script type="text/javascript" src="parsons.js">
     </script>
     <script type="text/javascript">
-        var initial = [[0, 'def bubblesort(l):'], [1, 'for passesLeft in range(len(l)-1, 0, -1):'], 
-		              [2, 'for index in range(passesLeft):'], 
-					  [3, 'if l[index] < l[index + 1]:<br/><span style="padding-left:50px;">l[index], l[index + 1] = l[index + 1], l[index]</span>'], 
-					  [1, 'return l']];
+		var initial = [[0, 'def traverse_in_order(binary_node):'],
+                       [1, 'if binary_node:'],
+                       [2, 'traverse_in_order(binary_node.get_left())'],
+                       [2, 'visit(binary_node)'],
+                       [2, 'traverse_in_order(binary_node.get_right())']]
         $(document).ready(function(){
             var parson = parsons2d({
                 'sortableId': 'sortable',
