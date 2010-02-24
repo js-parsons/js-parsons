@@ -101,6 +101,11 @@ var parsons2d = function(options) {
         var student_code = normalizeIndents(getModifiedCode());
         var lines_to_check = Math.min(student_code.length, model_solution.length)
         
+        console.log("model:");
+        console.log(model_solution);
+        console.log("student:");
+        console.log(student_code);
+        
         for (var i = 0; i < lines_to_check; i++) {
             var code_line = student_code[i];
             var model_line = model_solution[i]
@@ -152,7 +157,7 @@ var parsons2d = function(options) {
         } else {
             for (var i = 0; i < options.codeLines.length; i++) {
             	modified_lines[i] = codeLine(options.codeLines[i], 'codeline' + i);
-                if (options.codeLines[i].indent < 0) {
+                if (modified_lines[i].indent < 0) {
                 	extra_lines.push(codeLine(options.codeLines[i]));
                 } else {
                 	model_solution.push(codeLine(options.codeLines[i]));
