@@ -23,16 +23,14 @@ var parsons2d = function(options) {
     var modified_lines = [];
     var model_solution = [];
     var extra_lines = [];
-    var X_INDENT = options.xIndent || 50;
+    var X_INDENT = options.xIndent || 20;
     var FEEDBACK_STYLES = { 'correctPosition' : 'correctPosition',
             'incorrectPosition' : 'incorrectPosition',
             'correctIndent' : 'correctIndent',
             'incorrectIndent' : 'incorrectIndent'};
     function updateIndent(leftDiff, id) {
-        console.log("diff "+leftDiff);
         var code_line = getLineById(id);
-        var new_indent = code_line.indent
-        + Math.floor(leftDiff / X_INDENT);
+        var new_indent = code_line.indent + Math.floor(leftDiff / X_INDENT);
         new_indent = Math.max(0, new_indent);
         code_line.indent = new_indent;
         return new_indent;
@@ -101,11 +99,6 @@ var parsons2d = function(options) {
         var student_code = normalizeIndents(getModifiedCode());
         var lines_to_check = Math.min(student_code.length, model_solution.length)
         
-        console.log("model:");
-        console.log(model_solution);
-        console.log("student:");
-        console.log(student_code);
-        
         for (var i = 0; i < lines_to_check; i++) {
             var code_line = student_code[i];
             var model_line = model_solution[i]
@@ -134,42 +127,30 @@ var parsons2d = function(options) {
         if (options.correctSound && $.sound) {
             $.sound.play(options.correctSound);
         }
-
+        
+        $("#ul-" + options.sortableId).addClass("correct");
         alert("ok");
     };
     function clearFeedback() {
         if (feedback_exists) {
-            $("#ul-" + options.sortableId).removeClass("incorrect");
+            $("#ul-" + options.sortableId).removeClass("incorrect correct");
             var li_elements = $("#ul-" + options.sortableId + " li");
-            for (var style in FEEDBACK_STYLES) {
-                li_elements.removeClass(FEEDBACK_STYLES[style]);
-            }
+            $.each(FEEDBACK_STYLES, function(index, value) {
+                li_elements.removeClass(value);
+            });
         }
         feedback_exists = false;
     };
     function init() {
         var codelines = [];
-        if (typeof(options.codeLines) === "string") {
-            codelines = options.codeLines.split('\n');
-            for (var i = 0; i < codelines.length; i++) {
-                modified_lines[i] = {
-                        'indent' : 0,
-                        'code' : codelines[i],
-                        'id' : 'codeline' + i
-                };
-                codelines[i] = '<li id="codeline' + i + '" class="prettyprint lang-py">' + codelines[i] + '<\/li>';
+        for (var i = 0; i < options.codeLines.length; i++) {
+            modified_lines[i] = codeLine(options.codeLines[i], 'codeline' + i);
+            if (modified_lines[i].indent < 0) {
+                extra_lines.push(codeLine(options.codeLines[i]));
+            } else {
+                model_solution.push(codeLine(options.codeLines[i]));
             }
-        } else {
-            for (var i = 0; i < options.codeLines.length; i++) {
-            	modified_lines[i] = codeLine(options.codeLines[i], 'codeline' + i);
-                if (modified_lines[i].indent < 0) {
-                	extra_lines.push(codeLine(options.codeLines[i]));
-                } else {
-                	model_solution.push(codeLine(options.codeLines[i]));
-                }
-                codelines[i] = '<li id="codeline' + i + '" class="prettyprint lang-py">' + options.codeLines[i][1] + '<\/li>';
-                           
-            }
+            codelines[i] = '<li id="codeline' + i + '" class="prettyprint lang-py">' + modified_lines[i].code + '<\/li>';
         }
         var swap1, swap2, tmp;
         for (i = options.codeLines.length*2; i > 0; i--) {
@@ -181,7 +162,7 @@ var parsons2d = function(options) {
         }
         if (options.trashId) {
             $("#" + options.trashId).html('<p>Trash</p><ul id="ul-' + options.trashId + '">'+codelines.join('')+'</ul>');
-            $("#" + options.sortableId).html('<p>Solution</p><ul id="ul-' + options.sortableId + '"></ul>');
+            $("#" + options.sortableId).html('<p>Solution</p><ul id="ul-' + options.sortableId + '"></ul>');            
         } else {
             $("#" + options.sortableId).html('<ul id="ul-' + options.sortableId + '">'+codelines.join('')+'</ul>');
         }

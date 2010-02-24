@@ -14,7 +14,7 @@
 	padding-left: 0px;
 	margin-left: 50px;
 	float: left;
-	width: 500px;
+	min-width: 400px;
 }
 .ui-sortable {
     font-size: 120%;
@@ -32,10 +32,19 @@
     border:1px solid lightgray;
     padding:10px;
     margin-top: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+}
+.ui-sortable li:hover {
+	overflow: visible;
 }
 
 ul.incorrect {
-	background-color: #ffefef;
+    background-color: #ffefef;
+}
+
+ul.correct {
+    background-color: #efffef;
 }
 
 li.incorrectIndent {
