@@ -110,21 +110,23 @@ var parsons2d = function(options) {
             var code_line = student_code[i];
             var model_line = model_solution[i]
             if (code_line.code !== model_line.code) {
-            	displayError("line " + (i+1) + " is not correct!");
                 $("#" + code_line.id).addClass("incorrectPosition");
+            	displayError("line " + (i+1) + " is not correct!");
                 return;
             }
             if (code_line.indent !== model_line.indent) {
+                $("#" + code_line.id).addClass("incorrectIndent");
             	displayError("line " + (i+1) + " is not indented correctly");
-            	$("#" + code_line.id).addClass("incorrectIndent");
                 return;
             }
         }
         
         if (model_solution.length < student_code.length) {
+            $("#ul-" + options.sortableId).addClass("incorrect");
         	displayError("Too many lines in your solution");
         	return;        	
         } else if (model_solution.length > student_code.length){
+            $("#ul-" + options.sortableId).addClass("incorrect");
         	displayError("Too few lines in your solution");
         	return;
         }        
@@ -136,9 +138,12 @@ var parsons2d = function(options) {
         alert("ok");
     };
     function clearFeedback() {
-        var li_elements = $("#ul-" + options.sortableId + " li");
-        for (var style in FEEDBACK_STYLES) {
-            li_elements.removeClass(FEEDBACK_STYLES[style]);
+        if (feedback_exists) {
+            $("#ul-" + options.sortableId).removeClass("incorrect");
+            var li_elements = $("#ul-" + options.sortableId + " li");
+            for (var style in FEEDBACK_STYLES) {
+                li_elements.removeClass(FEEDBACK_STYLES[style]);
+            }
         }
         feedback_exists = false;
     };
@@ -186,11 +191,7 @@ var parsons2d = function(options) {
     };
     init();
     var sortable = $("#ul-" + options.sortableId).sortable({
-        start : function(event, ui) {
-            if (feedback_exists) {
-                clearFeedback(); 
-            }
-        },
+        start : clearFeedback,
         stop : function(event, ui) {
             if ($(event.target)[0] != ui.item.parent()[0]) {
                 return;
@@ -209,6 +210,7 @@ var parsons2d = function(options) {
     if (options.trashId) {
         var trash = $("#ul-" + options.trashId).sortable({
             connectWith: sortable,
+            start: clearFeedback,
             receive: function(event, ui) {
                 getLineById(ui.item[0].id).indent = 0;
                 ui.item.css("margin-left", "0");
