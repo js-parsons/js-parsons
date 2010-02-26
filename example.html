@@ -19,13 +19,16 @@
                        [2, 'visit(binary_node)'],
                        [2, 'traverse_in_order(binary_node.get_right())']]
         $(document).ready(function(){
-            var parson = parsons2d({
+            var parson = new ParsonsWidget({
                 'sortableId': 'sortable',
                 'codeLines': initial
             });
+			parson.createHtml();
+			
             $("#newInstanceLink").click(function(event){
                 event.preventDefault();
-                parson.shuffleLines();
+                parson.randomize();
+				parson.createHtml();
             });
             $("#feedbackLink").click(function(event){
                 event.preventDefault();

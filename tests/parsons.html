@@ -1,0 +1,43 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" 
+                    "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.js"></script>
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.7.2/jquery-ui.js"></script>
+    <script type="text/javascript" src="../parsons.js"></script>
+     <link rel="stylesheet" href="http://github.com/jquery/qunit/raw/master/qunit/qunit.css" type="text/css" media="screen" />
+     <script type="text/javascript" src="http://github.com/jquery/qunit/raw/master/qunit/qunit.js"></script>
+
+     <script>
+
+     $(document).ready(function(){
+             
+             test("Initialization with no extra lines", function() {
+                     var initial = [[0, 'def traverse_in_order(binary_node):'],
+                                    [1, 'if binary_node:'],
+                                    [2, 'traverse_in_order(binary_node.get_left())'],
+                                    [2, 'visit(binary_node)'],
+                                    [2, 'traverse_in_order(binary_node.get_right())']]
+                     var parson = new ParsonsWidget({'codeLines': initial});
+                     expect(1);
+                     equals(0,parson.extra_lines.length, "No extra lines were given");
+                 });
+
+             module("Module A");
+
+             test("first test within module", function() {
+                     ok( true, "all pass" );
+                 });
+
+
+         });
+  </script>
+  
+</head>
+<body>
+ <h1 id="qunit-header">QUnit example</h1>
+ <h2 id="qunit-banner"></h2>
+ <h2 id="qunit-userAgent"></h2>
+ <ol id="qunit-tests"></ol>
+</body>
+</html>
