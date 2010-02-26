@@ -15,20 +15,20 @@
     <script type="text/javascript">
 		var initial = [[0, 'def traverse_in_order(binary_node):'],
                        [1, 'if binary_node:'],
-                       [2, 'traverse_in_order(binary_node.get_left())'],
-                       [2, 'visit(binary_node)'],
-                       [2, 'traverse_in_order(binary_node.get_right())']]
+					   [2, 'foo'],
+					   [2, 'bar'],
+					   [2, 'baz']
+					   ];
         $(document).ready(function(){
             var parson = new ParsonsWidget({
                 'sortableId': 'sortable',
                 'codeLines': initial
             });
-			parson.createHtml();
-			
+			parson.shuffleLines();
+			//parson.createHtml();
             $("#newInstanceLink").click(function(event){
                 event.preventDefault();
-                parson.randomize();
-				parson.createHtml();
+                parson.shuffleLines();
             });
             $("#feedbackLink").click(function(event){
                 event.preventDefault();

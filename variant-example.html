@@ -22,11 +22,12 @@
 			[1, 'return l'],
 			[-1, 'return passesLeft']];
         $(document).ready(function(){
-            var parson = parsons2d({
+            var parson = new ParsonsWidget({
                 'sortableId': 'sortable',
 				'trashId': 'sortableTrash',
                 'codeLines': initial
             });
+			parson.shuffleLines();
             $("#newInstanceLink").click(function(event){
                 event.preventDefault();
                 parson.shuffleLines();

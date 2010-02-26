@@ -2,7 +2,6 @@ var ParsonsWidget = function(options) {
     this.modified_lines = [];
     this.extra_lines = [];
     this.model_solution = [];
-    this.randomized_original = [];
 
     
     this.options = options;
@@ -23,7 +22,7 @@ var ParsonsWidget = function(options) {
     
     for (var i = 0; i < options.codeLines.length; i++) {
         this.modified_lines[i] = codeLine(options.codeLines[i], 'codeline' + i);
-        this.randomized_original[i] = codeLine(options.codeLines[i], 'codeline' + i);
+        //this.randomized_original[i] = codeLine(options.codeLines[i], 'codeline' + i);
         if (this.modified_lines[i].indent < 0) {
             this.extra_lines.push(codeLine(options.codeLines[i]));
         } else {
@@ -107,30 +106,31 @@ ParsonsWidget.prototype.getFeedback = function() {
     this.feedback_exists = true;
     var student_code = this.normalizeIndents(this.getModifiedCode());
     var lines_to_check = Math.min(student_code.length, this.model_solution.length);
+    var errors = [];
     
     for (var i = 0; i < lines_to_check; i++) {
         var code_line = student_code[i];
         var model_line = this.model_solution[i];
         if (code_line.code !== model_line.code) {
             $("#" + code_line.id).addClass("incorrectPosition");
-            this.displayError("line " + (i+1) + " is not correct!");
-            return;
+            errors.push("line " + (i+1) + " is not correct!");
+            return errors;
         }
         if (code_line.indent !== model_line.indent) {
             $("#" + code_line.id).addClass("incorrectIndent");
-            this.displayError("line " + (i+1) + " is not indented correctly");
-            return;
+            errors.push("line " + (i+1) + " is not indented correctly");
+            return errors;
         }
     }
     
     if (this.model_solution.length < student_code.length) {
         $("#ul-" + this.options.sortableId).addClass("incorrect");
-        this.displayError("Too many lines in your solution");
-        return;
+        errors.push("Too many lines in your solution");
+        return errors;
     } else if (this.model_solution.length > student_code.length){
         $("#ul-" + this.options.sortableId).addClass("incorrect");
-        this.displayError("Too few lines in your solution");
-        return;
+        erros.push("Too few lines in your solution");
+        return errors;
     }        
     
     if (this.options.correctSound && $.sound) {
@@ -138,7 +138,8 @@ ParsonsWidget.prototype.getFeedback = function() {
     }
     
     $("#ul-" + this.options.sortableId).addClass("correct");
-    alert("ok");
+    //alert("ok");
+    return errors;
 };
 
 ParsonsWidget.prototype.clearFeedback = function() {
@@ -153,25 +154,43 @@ ParsonsWidget.prototype.clearFeedback = function() {
 };
 
 
-ParsonsWidget.prototype.randomize = function() {
+ParsonsWidget.prototype.getRandomPermutation = function(n) {
+    var permutation = [];
+    var i;
+    for (i = 0; i < n; i++) {
+        permutation.push(i);
+    }
     var swap1, swap2, tmp;
-    for (i = this.randomized_original.length*2; i > 0; i--) {
-        swap1 = Math.floor(Math.random() * this.modified_lines.length);
-        swap2 = Math.floor(Math.random() * this.modified_lines.length);
-        tmp = this.randomized_original[swap1];
-        this.randomized_original[swap1] = this.randomized_original[swap2];
-        this.randomized_original[swap2] = tmp;
-    }    
+    for (i = 0; i < n; i++) {
+        swap1 = Math.floor(Math.random() * n);
+        swap2 = Math.floor(Math.random() * n);
+        tmp = permutation[swap1];
+        permutation[swap1] = permutation[swap2];
+        permutation[swap2] = tmp;
+    }
+    return permutation;
 };
 
+ParsonsWidget.prototype.shuffleLines = function() {
+    this.createHtml(this.getRandomPermutation);
+};
 
 /** modifies the DOM by inserting exercise elements into it */
-ParsonsWidget.prototype.createHtml = function() {
-// TODO(petri): needs to be refactored    
+ParsonsWidget.prototype.createHtml = function(randomizeCallback) {
+// TODO(petri): needs more refactoring
         var codelines = [];
         var that = this;
-        for (var i=0; i<this.randomized_original.length; i++) {
-            codelines.push('<li id="codeline' + i + '" class="prettyprint lang-py">' + this.randomized_original[i].code + '<\/li>');
+        for (var i=0; i<this.modified_lines.length; i++) {
+            codelines.push('<li id="codeline' + i + '" class="prettyprint lang-py">' + this.modified_lines[i].code + '<\/li>');
+        }
+        //randomize is a permutation array, i.e. array with index values where [1, 2, ..., n] implies nothing is permutated
+        if (randomizeCallback) {
+            var permutation = randomizeCallback(codelines.length);
+            var randomized_lines = [];
+            for (i = 0; i < codelines.length; i++) {
+                randomized_lines[i] = codelines[permutation[i]];
+            }
+            codelines = randomized_lines;
         }
                          
     
@@ -181,7 +200,7 @@ ParsonsWidget.prototype.createHtml = function() {
         } else {
             $("#" + this.options.sortableId).html('<ul id="ul-' + this.options.sortableId + '">'+codelines.join('')+'</ul>');
         }
-        if (typeof(this.options.prettyPrint) === "undefined" || this.options.prettyPrint) {
+        if (window.prettyPrint && (typeof(this.options.prettyPrint) === "undefined" || this.options.prettyPrint)) {
             prettyPrint(); //NOT IMPLEMENTET YET?
         }
         var sortable = $("#ul-" + this.options.sortableId).sortable({
