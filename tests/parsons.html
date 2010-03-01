@@ -111,7 +111,7 @@ test("First two lines swapped in the beginning", function() {
                                          'sortableId': 'main'});
                                          
         parson.createHtml(swapPermutation);
-        var modified = parson.getModifiedCode();
+        var modified = parson.getModifiedCode("#ul-" + 'main');
         expect(2);
         equals(modified[0].code, 'bar');
         equals(modified[1].code, 'foo');
@@ -123,7 +123,7 @@ test("First two lines are not swapped", function() {
         var parson = new ParsonsWidget( {'codeLines': initial,
                                          'sortableId': 'main'});
         parson.createHtml(noPermutation);
-        var modified = parson.getModifiedCode();
+        var modified = parson.getModifiedCode("#ul-" + 'main');
         expect(2);
         equals(modified[0].code, 'foo');
         equals(modified[1].code, 'bar');
