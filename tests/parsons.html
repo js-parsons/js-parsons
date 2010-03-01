@@ -10,6 +10,10 @@
     
     <script>
 
+var assertCodeEquals = function(lines1, lines2) {
+	equals(lines1.length, lines2.length);
+}
+
 module("Independent utilities");
 
 test("getRandomPermutation", function() {
@@ -24,7 +28,7 @@ test("getRandomPermutation", function() {
 
 module("Initialization");
 
-test("Initialization of internal data structures", function() {
+test("internal data structures - no extra lines", function() {
         var initial = [[0, 'foo'],
                        [1, 'bar']];                                    
         var parson = new ParsonsWidget( {'codeLines': initial,
@@ -35,6 +39,38 @@ test("Initialization of internal data structures", function() {
         equals(parson.extra_lines.length, 0);
         equals(parson.model_solution.length, 2);
         equals(parson.modified_lines.length, 2);
+    });
+
+test("internal data structures - extra lines", function() {
+        var initial = [[0, 'foo'],
+                       [1, 'bar'],
+					   [-1, 'buz']];                                    
+        var parson = new ParsonsWidget( {'codeLines': initial,
+                                         'sortableId': 'main'});
+        parson.createHtml();
+                                                 
+        expect(3);
+        assertCodeEquals(parson.extra_lines, ['baz']);
+        assertCodeEquals(parson.model_solution, ['foo', 'bar']);
+        assertCodeEquals(parson.modified_lines, ['foo', 'bar', 'buz']);
+    });
+
+	
+test("Initialization of internal data structures - two parallel widgets", function() {
+        var initial = [[0, 'foo'],
+                       [1, 'bar']];
+		var initial2 = [[0, 'baz'],
+			           [-1, 'should not exist']];
+        var parson = new ParsonsWidget( {'codeLines': initial,
+                                         'sortableId': 'main'});
+        var parson2 = new ParsonsWidget( {'codeLines': initial2,
+                                          'sortableId': 'main2'});
+        parson.createHtml();      
+        parson2.createHtml();
+                                                 
+        expect(2);
+        equals(parson.getModifiedCode().length, 2);
+        equals(parson2.getModifiedCode().length, 1);
     });
 
                                          
@@ -99,6 +135,7 @@ test("First two lines are not swapped", function() {
 </head>
 <body>
  <div id="main"> </div>
+ <div id="main2"> </div>
         
  <h1 id="qunit-header">js-parsons tests</h1>
  <h2 id="qunit-banner"></h2>
