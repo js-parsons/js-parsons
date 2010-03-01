@@ -59,8 +59,8 @@ test("internal data structures - extra lines", function() {
 test("Initialization of internal data structures - two parallel widgets", function() {
         var initial = [[0, 'foo'],
                        [1, 'bar']];
-		var initial2 = [[0, 'baz'],
-			           [-1, 'should not exist']];
+	var initial2 = [[0, 'baz'],
+                        [-1, 'should not exist']];
         var parson = new ParsonsWidget( {'codeLines': initial,
                                          'sortableId': 'main'});
         var parson2 = new ParsonsWidget( {'codeLines': initial2,
@@ -69,8 +69,8 @@ test("Initialization of internal data structures - two parallel widgets", functi
         parson2.createHtml();
                                                  
         expect(2);
-        equals(parson.getModifiedCode().length, 2);
-        equals(parson2.getModifiedCode().length, 1);
+        equals(parson.model_solution.length, 2);
+        equals(parson2.model_solution.length, 1);
     });
 
                                          
