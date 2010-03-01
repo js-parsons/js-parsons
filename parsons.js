@@ -3,6 +3,8 @@ var ParsonsWidget = function(options) {
     this.extra_lines = [];
     this.model_solution = [];
 
+    //To collect statistics, feedback should not be based on this
+    this.user_actions = [];
     
     this.options = options;
     this.feedbackExists = false;
@@ -29,6 +31,17 @@ var ParsonsWidget = function(options) {
             this.model_solution.push(codeLine(options.codeLines[i]));
         }
         this.modified_lines[i].indent = 0;
+    }
+};
+
+
+ParsonsWidget.prototype.addLogEntry = function(entry) {
+    if (entry) {
+        this.user_actions.push(entry);
+    } else {
+        this.user_actions.push({time: new Date(),
+                                answer: jQuery.extend(true, [], this.getModifiedCode("#ul-" + this.options.sortableId)),
+                                trash: jQuery.extend(true, [], this.getModifiedCode("#ul-" + this.options.trashId))});
     }
 };
 
@@ -97,15 +110,16 @@ ParsonsWidget.prototype.normalizeIndents = function(lines) {
  * 
  * TODO(petri) refactor to UI
  * */
-ParsonsWidget.prototype.getModifiedCode = function() {
+ParsonsWidget.prototype.getModifiedCode = function(search_string) {
     //ids of the the modified code
-    var users_code_ids = $("#ul-" + this.options.sortableId).sortable('toArray');
+    var users_code_ids = $(search_string).sortable('toArray');
     var lines_to_return = [];
     for ( var i = 0; i < users_code_ids.length; i++ ) {
         lines_to_return[i] = this.getLineById(users_code_ids[i]);
     }
     return lines_to_return;
 };
+
 
 /**
  * TODO(petri) refoctor to UI
@@ -122,7 +136,7 @@ ParsonsWidget.prototype.displayError = function(message) {
  */
 ParsonsWidget.prototype.getFeedback = function() {
     this.feedback_exists = true;
-    var student_code = this.normalizeIndents(this.getModifiedCode());
+    var student_code = this.normalizeIndents(this.getModifiedCode("#ul-" + this.options.sortableId));
     var lines_to_check = Math.min(student_code.length, this.model_solution.length);
     var errors = [];
     
@@ -225,11 +239,13 @@ ParsonsWidget.prototype.createHtml = function(randomizeCallback) {
             start : that.clearFeedback,
             stop : function(event, ui) {
                 if ($(event.target)[0] != ui.item.parent()[0]) {
+                    that.addLogEntry();
                     return;
                 }
                 var ind = that.updateIndent(ui.position.left - ui.item.parent().offset().left,
                                         ui.item[0].id);
                 ui.item.css("margin-left", that.X_INDENT * ind + "px");
+                that.addLogEntry();
             },
             receive : function(event, ui) {
                 var ind = that.updateIndent(ui.position.left - ui.item.parent().offset().left,
@@ -245,6 +261,9 @@ ParsonsWidget.prototype.createHtml = function(randomizeCallback) {
                 receive: function(event, ui) {
                     that.getLineById(ui.item[0].id).indent = 0;
                     ui.item.css("margin-left", "0");
+                },
+                stop: function(event, ui) { 
+                    that.addLogEntry(); 
                 }
             });
             sortable.sortable('option', 'connectWith', trash);
