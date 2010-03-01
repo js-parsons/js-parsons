@@ -32,6 +32,10 @@ var ParsonsWidget = function(options) {
     }
 };
 
+/**
+ * Update indentation of a line based on new coordinates 
+ * leftDiff horizontal difference from (before and after drag) in px
+ ***/
 ParsonsWidget.prototype.updateIndent = function(leftDiff, id) {
     var code_line = this.getLineById(id);
     var new_indent = code_line.indent + Math.floor(leftDiff / this.X_INDENT);
@@ -40,16 +44,20 @@ ParsonsWidget.prototype.updateIndent = function(leftDiff, id) {
     return new_indent;
 };
 
-ParsonsWidget.prototype.getElemIndex = function(id) {
+/**
+ * 
+ * @param id
+ * @return
+ */
+ParsonsWidget.prototype.getLineById = function(id) {
+    var index = -1;
     for (var i = 0; i < this.modified_lines.length; i++) {
         if (this.modified_lines[i].id == id) {
-            return i;
+            index = i;
+            break;
         }
     }
-};
-
-ParsonsWidget.prototype.getLineById = function(id) {
-    return this.modified_lines[this.getElemIndex(id)];
+    return this.modified_lines[index];
 };
 
 /** Does not use the current object - only the argument */
@@ -84,7 +92,11 @@ ParsonsWidget.prototype.normalizeIndents = function(lines) {
     return normalized;
 };
 
-/** Retrieve the code lines based on what is in the DOM */
+/** 
+ * Retrieve the code lines based on what is in the DOM 
+ * 
+ * TODO(petri) refactor to UI
+ * */
 ParsonsWidget.prototype.getModifiedCode = function() {
     //ids of the the modified code
     var users_code_ids = $("#ul-" + this.options.sortableId).sortable('toArray');
@@ -95,13 +107,19 @@ ParsonsWidget.prototype.getModifiedCode = function() {
     return lines_to_return;
 };
 
+/**
+ * TODO(petri) refoctor to UI
+ */
 ParsonsWidget.prototype.displayError = function(message) {
     if (this.options.incorrectSound && $.sound) {
         $.sound.play(this.options.incorrectSound);
     }
     alert(message);
 };
-
+/**
+ * TODO(petri): Separate UI from here
+ * @return
+ */
 ParsonsWidget.prototype.getFeedback = function() {
     this.feedback_exists = true;
     var student_code = this.normalizeIndents(this.getModifiedCode());
