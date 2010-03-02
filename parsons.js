@@ -7,7 +7,7 @@ var ParsonsWidget = function(options) {
     this.user_actions = [];
     
     this.options = options;
-    this.feedbackExists = false;
+    this.feedback_exists = false;
     this.X_INDENT = options.xIndent || 20;
     this.FEEDBACK_STYLES = { 'correctPosition' : 'correctPosition',
             'incorrectPosition' : 'incorrectPosition',
@@ -34,6 +34,8 @@ var ParsonsWidget = function(options) {
     }
 };
 
+
+//Public methods
 
 ParsonsWidget.prototype.addLogEntry = function(entry) {
     if (entry) {
@@ -236,7 +238,7 @@ ParsonsWidget.prototype.createHtml = function(randomizeCallback) {
             prettyPrint(); //NOT IMPLEMENTET YET?
         }
         var sortable = $("#ul-" + this.options.sortableId).sortable({
-            start : that.clearFeedback,
+            start : function() { that.clearFeedback(); },
             stop : function(event, ui) {
                 if ($(event.target)[0] != ui.item.parent()[0]) {
                     that.addLogEntry();
@@ -257,7 +259,7 @@ ParsonsWidget.prototype.createHtml = function(randomizeCallback) {
         if (this.options.trashId) {
             var trash = $("#ul-" + this.options.trashId).sortable({
                 connectWith: sortable,
-                start: that.clearFeedback,
+                start: function() { that.clearFeedback(); },
                 receive: function(event, ui) {
                     that.getLineById(ui.item[0].id).indent = 0;
                     ui.item.css("margin-left", "0");
