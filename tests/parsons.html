@@ -14,19 +14,42 @@ var assertCodeEquals = function(lines1, lines2) {
 	equals(lines1.length, lines2.length);
 }
 
-module("Independent utilities");
+module("Utilities");
 
-test("getRandomPermutation", function() {
+test("getRondomPermutation()", function() {
         var initial = [[0, 'foo'],
                        [1, 'bar']];                                    
         var parson = new ParsonsWidget( {'codeLines': initial,
                                          'sortableId': 'main'});
         var perm = parson.getRandomPermutation(2);
-        equals(perm.length,2);        
+        equals(perm.length,2);
+		ok( (perm[0] == 0 && perm[1] == 1) || (perm[0] == 1 && perm[1] == 0) );    
     });
 
+test("normalizeIndents()", function() {
+	
+		var codeLine = function(elem, index) { return {'indent': elem}; };
+        var initial = [[0, 'foo'],
+                       [1, 'bar']];                                    
+        var parson = new ParsonsWidget( {'codeLines': initial,
+                                         'sortableId': 'main'});
+        var perm = parson.getRandomPermutation(2);
+        same(
+			parson.normalizeIndents(jQuery.map([0, 1, 2, 1], codeLine)),	
+			jQuery.map([0, 1, 2, 1], codeLine),
+			"already normalized");
+		same(
+			parson.normalizeIndents(jQuery.map([1, 4, 5, 4], codeLine)),	
+			jQuery.map([0, 1, 2, 1], codeLine),
+			"too much indented");
+			
+		same(
+			parson.normalizeIndents(jQuery.map([1, 4, 5, 3], codeLine)),	
+			jQuery.map([0, 1, 2, -1], codeLine),
+			"no matching indentation");			
+	});	
 
-module("Initialization");
+module("Initialization of t");
 
 test("internal data structures - no extra lines", function() {
         var initial = [[0, 'foo'],
