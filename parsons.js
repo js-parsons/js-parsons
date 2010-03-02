@@ -10,7 +10,7 @@ var ParsonsWidget = function(options) {
             'incorrectSound': false,
             'x_indent': 20,
             'feedback_cb': false,
-            'enddrag_cb': false
+            'first_error_only': true
     };
     
     this.options = jQuery.extend({}, defaults, options);
@@ -152,33 +152,37 @@ ParsonsWidget.prototype.getFeedback = function() {
     for (var i = 0; i < lines_to_check; i++) {
         var code_line = student_code[i];
         var model_line = this.model_solution[i];
-        if (code_line.code !== model_line.code) {
+        if (code_line.code !== model_line.code && 
+                ((!this.options.first_error_only) || errors.length == 0)) {
             $("#" + code_line.id).addClass("incorrectPosition");
             errors.push("line " + (i+1) + " is not correct!");
-            return errors;
         }
-        if (code_line.indent !== model_line.indent) {
+        if (code_line.indent !== model_line.indent && 
+                ((!this.options.first_error_only) || errors.length == 0)) {
             $("#" + code_line.id).addClass("incorrectIndent");
             errors.push("line " + (i+1) + " is not indented correctly");
-            return errors;
         }
     }
     
+    // Always show this feedback
     if (this.model_solution.length < student_code.length) {
         $("#ul-" + this.options.sortableId).addClass("incorrect");
         errors.push("Too many lines in your solution");
-        return errors;
     } else if (this.model_solution.length > student_code.length){
         $("#ul-" + this.options.sortableId).addClass("incorrect");
         erros.push("Too few lines in your solution");
-        return errors;
     }        
     
-    if (this.options.correctSound && $.sound) {
-        $.sound.play(this.options.correctSound);
+    if (error.length == 0) {
+        if (this.options.correctSound && $.sound) {
+            $.sound.play(this.options.correctSound);
+        }    
+        $("#ul-" + this.options.sortableId).addClass("correct");
     }
     
-    $("#ul-" + this.options.sortableId).addClass("correct");
+    if (this.options.feedback_cb) {
+        feedback_cb(); //TODO(petri): what is needed?
+    }
     //alert("ok");
     return errors;
 };
