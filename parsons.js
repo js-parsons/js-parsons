@@ -173,7 +173,7 @@ ParsonsWidget.prototype.getFeedback = function() {
         erros.push("Too few lines in your solution");
     }        
     
-    if (error.length == 0) {
+    if (errors.length == 0) {
         if (this.options.correctSound && $.sound) {
             $.sound.play(this.options.correctSound);
         }    
