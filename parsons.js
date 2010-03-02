@@ -6,7 +6,14 @@ var ParsonsWidget = function(options) {
     //To collect statistics, feedback should not be based on this
     this.user_actions = [];
     
-    this.options = options;
+    var defaults = { 
+            'incorrectSound': false,
+            'x_indent': 20,
+            'feedback_cb': false,
+            'enddrag_cb': false
+    };
+    
+    this.options = jQuery.extend({}, defaults, options);
     this.feedback_exists = false;
     this.X_INDENT = options.xIndent || 20;
     this.FEEDBACK_STYLES = { 'correctPosition' : 'correctPosition',
@@ -53,7 +60,7 @@ ParsonsWidget.prototype.addLogEntry = function(entry) {
  ***/
 ParsonsWidget.prototype.updateIndent = function(leftDiff, id) {
     var code_line = this.getLineById(id);
-    var new_indent = code_line.indent + Math.floor(leftDiff / this.X_INDENT);
+    var new_indent = code_line.indent + Math.floor(leftDiff / this.options.x_indent);
     new_indent = Math.max(0, new_indent);
     code_line.indent = new_indent;
     return new_indent;
@@ -246,15 +253,15 @@ ParsonsWidget.prototype.createHtml = function(randomizeCallback) {
                 }
                 var ind = that.updateIndent(ui.position.left - ui.item.parent().offset().left,
                                         ui.item[0].id);
-                ui.item.css("margin-left", that.X_INDENT * ind + "px");
+                ui.item.css("margin-left", that.options.x_indent * ind + "px");
                 that.addLogEntry();
             },
             receive : function(event, ui) {
                 var ind = that.updateIndent(ui.position.left - ui.item.parent().offset().left,
                                         ui.item[0].id);
-                ui.item.css("margin-left", that.X_INDENT * ind + "px");
+                ui.item.css("margin-left", that.options.x_indent * ind + "px");
             },
-            grid : [that.X_INDENT, 1 ]
+            grid : [that.options.x_indent, 1 ]
         });
         if (this.options.trashId) {
             var trash = $("#ul-" + this.options.trashId).sortable({
@@ -283,17 +290,17 @@ var parsons2d = function(options) {
     //  - incorrectSound: relative url to a sound file which is played on error
     //  - correctSound: relative url to a sound file which is played when solved correctly
     //  - xIndent: width of one indent as a number of pixels, defaults to 50 
-	var codeLine = function(table_row, id) {
-		
-		return {
-			id: id,
-			code: table_row[1],
-			indent: table_row[0]
-		};
-				
-		  
-	};
-	
+        var codeLine = function(table_row, id) {
+                
+                return {
+                        id: id,
+                        code: table_row[1],
+                        indent: table_row[0]
+                };
+                                
+                  
+        };
+        
     var feedback_exists = false;
     var modified_lines = [];
     var model_solution = [];
