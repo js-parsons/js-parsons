@@ -231,20 +231,26 @@ ParsonsWidget.prototype.shuffleLines = function() {
 ParsonsWidget.prototype.createHtml = function(randomizeCallback) {
 // TODO(petri): needs more refactoring
         var codelines = [];
+                var initial_state = this.modified_lines; //used only for logging
+                
         var that = this;
         for (var i=0; i<this.modified_lines.length; i++) {
             codelines.push('<li id="codeline' + i + '" class="prettyprint lang-py">' + this.modified_lines[i].code + '<\/li>');
         }
+                
         //randomize is a permutation array, i.e. array with index values where [1, 2, ..., n] implies nothing is permutated
         if (randomizeCallback) {
             var permutation = randomizeCallback(codelines.length);
             var randomized_lines = [];
+                        var randomized_initial = []; //used only for logging
             for (i = 0; i < codelines.length; i++) {
                 randomized_lines[i] = codelines[permutation[i]];
+                                randomized_initial = this.modified_lines[permutation[i]];
             }
+                        initial_state = randomized_initial;
             codelines = randomized_lines;
         }
-                         
+        this.addLogEntry({'time': new Date(), 'initial': initial_state});
     
         if (this.options.trashId) {
             $("#" + this.options.trashId).html('<p>Trash</p><ul id="ul-' + this.options.trashId + '">'+codelines.join('')+'</ul>');
