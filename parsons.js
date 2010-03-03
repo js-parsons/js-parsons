@@ -48,9 +48,16 @@ ParsonsWidget.prototype.addLogEntry = function(entry) {
     if (entry) {
         this.user_actions.push(entry);
     } else {
-        this.user_actions.push({time: new Date(),
-                                answer: jQuery.extend(true, [], this.getModifiedCode("#ul-" + this.options.sortableId)),
-                                trash: jQuery.extend(true, [], this.getModifiedCode("#ul-" + this.options.trashId))});
+        if (this.options.trashId) {
+            this.user_actions.push({
+                time: new Date(),
+                answer: jQuery.extend(true, [], this.getModifiedCode("#ul-" + this.options.sortableId)),
+                trash: jQuery.extend(true, [], this.getModifiedCode("#ul-" + this.options.trashId))});
+        } else {
+            this.user_actions.push({
+                time: new Date(),
+                answer: jQuery.extend(true, [], this.getModifiedCode("#ul-" + this.options.sortableId))});
+        }
     }
 };
 
