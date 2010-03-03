@@ -177,7 +177,7 @@ ParsonsWidget.prototype.getFeedback = function() {
         errors.push("Too many lines in your solution");
     } else if (this.model_solution.length > student_code.length){
         $("#ul-" + this.options.sortableId).addClass("incorrect");
-        erros.push("Too few lines in your solution");
+        errors.push("Too few lines in your solution");
     }        
     
     if (errors.length == 0) {
