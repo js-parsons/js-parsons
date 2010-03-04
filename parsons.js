@@ -10,7 +10,8 @@ var ParsonsWidget = function(options) {
             'incorrectSound': false,
             'x_indent': 20,
             'feedback_cb': false,
-            'first_error_only': true
+            'first_error_only': true,
+            'max_wrong_lines': 10
     };
     
     this.options = jQuery.extend({}, defaults, options);
@@ -29,15 +30,24 @@ var ParsonsWidget = function(options) {
         };
     };
     
+    var noise = 0;
+	var skipped = 0;
     for (var i = 0; i < options.codeLines.length; i++) {
-        this.modified_lines[i] = codeLine(options.codeLines[i], 'codeline' + i);
+        if (options.codeLines[i][0] < 0) {
+           noise++;
+            if (noise > options.max_wrong_lines) {
+                skipped++;
+                continue;
+            }
+        }
+        this.modified_lines.push(codeLine(options.codeLines[i], 'codeline' + i));
         //this.randomized_original[i] = codeLine(options.codeLines[i], 'codeline' + i);
-        if (this.modified_lines[i].indent < 0) {
+        if (this.modified_lines[i-skipped].indent < 0) {
             this.extra_lines.push(codeLine(options.codeLines[i]));
         } else {
             this.model_solution.push(codeLine(options.codeLines[i]));
         }
-        this.modified_lines[i].indent = 0;
+        this.modified_lines[i-skipped].indent = 0;
     }
 };
 
@@ -147,8 +157,8 @@ ParsonsWidget.prototype.displayError = function(message) {
     alert(message);
 };
 /**
- * TODO(petri): Separate UI from here
  * @return
+ * TODO(petri): Separate UI from here
  */
 ParsonsWidget.prototype.getFeedback = function() {
     this.feedback_exists = true;
