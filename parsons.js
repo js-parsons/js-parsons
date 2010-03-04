@@ -10,7 +10,9 @@ var ParsonsWidget = function(options) {
             'incorrectSound': false,
             'x_indent': 20,
             'feedback_cb': false,
-            'first_error_only': true
+            'first_error_only': true,
+            'trash_label': 'Drag from here',
+            'solution_label': 'Construct your solution here'
     };
     
     this.options = jQuery.extend({}, defaults, options);
@@ -253,8 +255,8 @@ ParsonsWidget.prototype.createHtml = function(randomizeCallback) {
         this.addLogEntry({'time': new Date(), 'initial': initial_state});
     
         if (this.options.trashId) {
-            $("#" + this.options.trashId).html('<p>Trash</p><ul id="ul-' + this.options.trashId + '">'+codelines.join('')+'</ul>');
-            $("#" + this.options.sortableId).html('<p>Solution</p><ul id="ul-' + this.options.sortableId + '"></ul>');            
+            $("#" + this.options.trashId).html('<p>'+this.options.trash_label+'</p><ul id="ul-' + this.options.trashId + '">'+codelines.join('')+'</ul>');
+            $("#" + this.options.sortableId).html('<p>'+this.options.solution_label+'</p><ul id="ul-' + this.options.sortableId + '"></ul>');            
         } else {
             $("#" + this.options.sortableId).html('<ul id="ul-' + this.options.sortableId + '">'+codelines.join('')+'</ul>');
         }
