@@ -126,7 +126,12 @@ ParsonsWidget.prototype.normalizeIndents = function(lines) {
             new_line.indent = normalized[i-1].indent + 1;
         } else {
             // indentation can be -1 if no matching indentation exists, i.e. IndentationError in Python
-            new_line.indent = match_indent(i);                    
+            var index = match_indent(i);
+            if (index < 0) {
+                new_line.indent = -1;
+            } else {
+                new_line.indent = normalized[index].indent;
+            }
         }
         normalized[i] = new_line;
     }
