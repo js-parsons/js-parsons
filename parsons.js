@@ -181,6 +181,11 @@ ParsonsWidget.prototype.getFeedback = function() {
             $("#" + code_line.id).addClass("incorrectIndent");
             errors.push("line " + (i+1) + " is not indented correctly");
         }
+        if (code_line.code == model_line.code &&
+            code_line.indent == model_line.indent &&
+            errors.length == 0) {
+            $("#" + code_line.id).addClass("correctPosition");
+        }
     }
     
     // Always show this feedback
