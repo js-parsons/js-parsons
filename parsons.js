@@ -11,7 +11,9 @@ var ParsonsWidget = function(options) {
             'x_indent': 20,
             'feedback_cb': false,
             'first_error_only': true,
-            'max_wrong_lines': 10
+            'max_wrong_lines': 10,
+            'trash_label': 'Drag from here',
+            'solution_label': 'Construct your solution here'
     };
     
     this.options = jQuery.extend({}, defaults, options);
@@ -187,7 +189,7 @@ ParsonsWidget.prototype.getFeedback = function() {
         errors.push("Too many lines in your solution");
     } else if (this.model_solution.length > student_code.length){
         $("#ul-" + this.options.sortableId).addClass("incorrect");
-        erros.push("Too few lines in your solution");
+        errors.push("Too few lines in your solution");
     }        
     
     if (errors.length == 0) {
@@ -263,8 +265,8 @@ ParsonsWidget.prototype.createHtml = function(randomizeCallback) {
         this.addLogEntry({'time': new Date(), 'initial': initial_state});
     
         if (this.options.trashId) {
-            $("#" + this.options.trashId).html('<p>Trash</p><ul id="ul-' + this.options.trashId + '">'+codelines.join('')+'</ul>');
-            $("#" + this.options.sortableId).html('<p>Solution</p><ul id="ul-' + this.options.sortableId + '"></ul>');            
+            $("#" + this.options.trashId).html('<p>'+this.options.trash_label+'</p><ul id="ul-' + this.options.trashId + '">'+codelines.join('')+'</ul>');
+            $("#" + this.options.sortableId).html('<p>'+this.options.solution_label+'</p><ul id="ul-' + this.options.sortableId + '"></ul>');            
         } else {
             $("#" + this.options.sortableId).html('<ul id="ul-' + this.options.sortableId + '">'+codelines.join('')+'</ul>');
         }
