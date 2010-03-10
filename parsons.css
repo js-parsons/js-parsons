@@ -1,31 +1,21 @@
-.indent-1 {
-	padding-left: 0px;
-}
-
-.indent-2 {
-	padding-left: 100px;
-}
-
-.indent-3 {
-	padding-left: 200px;
-}
-
 .sortable-code {
 	padding-left: 0px;
-	margin-left: 50px;
+	margin-left: 2%;
 	float: left;
 	min-width: 400px;
 }
-.ui-sortable {
+#sortableTrash { width: 38%; }
+#sortable { width: 56%; }
+.sortable-code ul {
     font-size: 120%;
     font-family: monospace;
     list-style: None;
-	min-height: 150px;
 	background-color: #efefff;
+    padding-bottom: 40px;
 	padding-left: 0;
 	margin-left: 0;
 }
-.ui-sortable li {
+.sortable-code li {
     -moz-border-radius:10px 10px 10px 10px;
     -webkit-border-radius:10px 10px 10px 10px;
     background-color:#EFEFEF;
@@ -35,7 +25,7 @@
     white-space: nowrap;
     overflow: hidden;
 }
-.ui-sortable li:hover {
+.sortable-code li:hover {
 	overflow: visible;
 }
 
