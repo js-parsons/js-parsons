@@ -8,7 +8,7 @@ var ParsonsWidget = function(options) {
     
     var defaults = { 
             'incorrectSound': false,
-            'x_indent': 20,
+            'x_indent': 50,
             'feedback_cb': false,
             'first_error_only': true,
             'max_wrong_lines': 10,
@@ -18,12 +18,72 @@ var ParsonsWidget = function(options) {
     
     this.options = jQuery.extend({}, defaults, options);
     this.feedback_exists = false;
-    this.X_INDENT = options.xIndent || 20;
     this.FEEDBACK_STYLES = { 'correctPosition' : 'correctPosition',
             'incorrectPosition' : 'incorrectPosition',
             'correctIndent' : 'correctIndent',
             'incorrectIndent' : 'incorrectIndent'};
     
+};
+
+
+//Public methods
+
+ParsonsWidget.prototype.parseLine = function(spacePrefixedLine) {
+    return {
+	code: spacePrefixedLine.trim().replace(/\\n/,"\n"),
+	indent: spacePrefixedLine.length - spacePrefixedLine.replace(/^\s+/,"").length
+    };
+}
+
+ParsonsWidget.prototype.parseCode = function(lines) {
+        var distractors = [],
+            indented = [],
+            widgetData = [],
+            lineObject,
+	    errors = [],
+	    that = this;   
+        $.each(lines, function(index, item) {
+            if (item.search(/#distractor\s*$/) >= 0) {
+                lineObject = { 
+		    code: item.replace(/#distractor\s*$/,"").trim().replace(/\\n/,"\n"),
+                        indent: -1,
+                        distractor: true,
+                        orig: index
+                };
+                if (lineObject.code.length > 0) {
+                    distractors.push(lineObject);
+                }
+            } else {
+                lineObject = that.parseLine(item);
+                if (lineObject.code.length > 0) {
+                    lineObject.distractor = false;
+                    lineObject.orig = index;     
+                    indented.push(lineObject);
+                }
+            }    
+        });
+
+        // Normalize indents and make sure indentation is valid
+        var normalized = this.normalizeIndents(indented);
+        $.each(normalized, function(index, item) {
+            if (item.indent < 0) {
+                errors.push("Line " + normalized.orig + " is not correctly indented. No matching indentation."); 
+            }
+            widgetData.push([item.indent, item.code]);
+        });
+        $.each(distractors, function(index, item) {
+            widgetData.push([-1, item.code]);
+        });
+        return {
+            solution: normalized,
+            distractors: distractors,
+            widgetInitial: widgetData,
+            errors: errors};
+};
+
+ParsonsWidget.prototype.init = function(text) {
+    var lines = this.parseCode(text.split("\n")).widgetInitial;
+    jQuery.extend(this.options, {'codeLines': lines});
     var codeLine = function(table_row, id) {
         return {
             id: id,
@@ -31,45 +91,50 @@ var ParsonsWidget = function(options) {
             indent: table_row[0]
         };
     };
-    
     var noise = 0;
-	var skipped = 0;
-    for (var i = 0; i < options.codeLines.length; i++) {
-        if (options.codeLines[i][0] < 0) {
+    var skipped = 0;
+    for (var i = 0; i < this.options.codeLines.length; i++) {
+        if (this.options.codeLines[i][0] < 0) {
            noise++;
-            if (noise > options.max_wrong_lines) {
+            if (noise > this.options.max_wrong_lines) {
                 skipped++;
                 continue;
             }
         }
-        this.modified_lines.push(codeLine(options.codeLines[i], 'codeline' + i));
-        //this.randomized_original[i] = codeLine(options.codeLines[i], 'codeline' + i);
+        this.modified_lines.push(codeLine(this.options.codeLines[i], 'codeline' + i));
+        //this.randomized_original[i] = codeLine(this.options.codeLines[i], 'codeline' + i);
         if (this.modified_lines[i-skipped].indent < 0) {
-            this.extra_lines.push(codeLine(options.codeLines[i]));
+            this.extra_lines.push(codeLine(this.options.codeLines[i]));
         } else {
-            this.model_solution.push(codeLine(options.codeLines[i]));
+            this.model_solution.push(codeLine(this.options.codeLines[i]));
         }
         this.modified_lines[i-skipped].indent = 0;
     }
 };
 
-
-//Public methods
-
-ParsonsWidget.prototype.addLogEntry = function(entry) {
-    if (entry) {
+ParsonsWidget.prototype.addLogEntry = function(entry, extend) {
+    var logData = {};
+    if (entry && !extend) {
         this.user_actions.push(entry);
     } else {
         if (this.options.trashId) {
-            this.user_actions.push({
+            logData = {
                 time: new Date(),
-                answer: jQuery.extend(true, [], this.getModifiedCode("#ul-" + this.options.sortableId)),
-                trash: jQuery.extend(true, [], this.getModifiedCode("#ul-" + this.options.trashId))});
+                output: jQuery.extend(true, [], this.getModifiedCode("#ul-" + this.options.sortableId)),
+                input: jQuery.extend(true, [], this.getModifiedCode("#ul-" + this.options.trashId)),
+                type: "action"
+            };
         } else {
-            this.user_actions.push({
+            logData = {
                 time: new Date(),
-                answer: jQuery.extend(true, [], this.getModifiedCode("#ul-" + this.options.sortableId))});
+                output: jQuery.extend(true, [], this.getModifiedCode("#ul-" + this.options.sortableId)),
+                type: "action"
+            };
         }
+        if (entry && extend) {
+          jQuery.extend(logData, entry);
+        }
+        this.user_actions.push(logData);
     }
 };
 
@@ -110,7 +175,7 @@ ParsonsWidget.prototype.normalizeIndents = function(lines) {
         //return line index from the previous lines with matching indentation
         for (var i = index-1; i >= 0; i--) {
             if (lines[i].indent == lines[index].indent) {
-                return i;
+                return normalized[i].indent;
             }
         }
         return -1;
@@ -120,18 +185,16 @@ ParsonsWidget.prototype.normalizeIndents = function(lines) {
         new_line = jQuery.extend({}, lines[i]);
         if (i === 0) {
             new_line.indent = 0;
+            if (lines[i].indent !== 0) {
+              new_line.indent = -1;
+            }
         } else if (lines[i].indent == lines[i-1].indent) {
             new_line.indent = normalized[i-1].indent;
         } else if (lines[i].indent > lines[i-1].indent) {
             new_line.indent = normalized[i-1].indent + 1;
         } else {
             // indentation can be -1 if no matching indentation exists, i.e. IndentationError in Python
-            var index = match_indent(i);
-            if (index < 0) {
-                new_line.indent = -1;
-            } else {
-                new_line.indent = normalized[index].indent;
-            }
+            new_line.indent = match_indent(i);
         }
         normalized[i] = new_line;
     }
@@ -171,37 +234,58 @@ ParsonsWidget.prototype.getFeedback = function() {
     this.feedback_exists = true;
     var student_code = this.normalizeIndents(this.getModifiedCode("#ul-" + this.options.sortableId));
     var lines_to_check = Math.min(student_code.length, this.model_solution.length);
-    var errors = [];
+    var errors = [], log_errors = [];
     
-    for (var i = 0; i < lines_to_check; i++) {
-        var code_line = student_code[i];
-        var model_line = this.model_solution[i];
-        if (code_line.code !== model_line.code && 
-                ((!this.options.first_error_only) || errors.length == 0)) {
-            $("#" + code_line.id).addClass("incorrectPosition");
-            errors.push("line " + (i+1) + " is not correct!");
-        }
-        if (code_line.indent !== model_line.indent && 
-                ((!this.options.first_error_only) || errors.length == 0)) {
-            $("#" + code_line.id).addClass("incorrectIndent");
-            errors.push("line " + (i+1) + " is not indented correctly");
-        }
-        if (code_line.code == model_line.code &&
-            code_line.indent == model_line.indent &&
-            errors.length == 0) {
-            $("#" + code_line.id).addClass("correctPosition");
-        }
+    var lines = _.map(student_code, function(line) {
+      return parseInt(line.id.substring(8), 10);
+    });
+    var inv = LIS.best_lise_inverse(lines);
+    var incorrectLines = [];
+    _.each(inv, function(itemId) {
+      $("#codeline" + itemId).addClass("incorrectPosition");
+      incorrectLines.push(itemId);
+    });
+    if (inv.length > 0) {
+      errors.push("Some lines in incorrect position relative to others");
+      log_errors.push({type: "incorrectPosition", lines: incorrectLines});
     }
     
     // Always show this feedback
     if (this.model_solution.length < student_code.length) {
         $("#ul-" + this.options.sortableId).addClass("incorrect");
         errors.push("Too many lines in your solution");
+        log_errors.push({type: "tooManyLines", lines: student_code.length});
     } else if (this.model_solution.length > student_code.length){
         $("#ul-" + this.options.sortableId).addClass("incorrect");
         errors.push("Too few lines in your solution");
-    }        
+        log_errors.push({type: "tooFewLines", lines: student_code.length});
+    }
     
+    if (errors.length == 0) { // check indent if no other errors
+      for (var i = 0; i < lines_to_check; i++) {
+        var code_line = student_code[i];
+        var model_line = this.model_solution[i];
+        // need to uncomment following if distractors are added back!!
+        /*if (code_line.code !== model_line.code && 
+                ((!this.options.first_error_only) || errors.length == 0)) {
+            $("#" + code_line.id).addClass("incorrectPosition");
+            errors.push("line " + (i+1) + " is not correct!");
+            log_errors.push({type: "incorrectPosition", line: (i+1)});
+        }*/
+        if (code_line.indent !== model_line.indent && 
+                ((!this.options.first_error_only) || errors.length == 0)) {
+            $("#" + code_line.id).addClass("incorrectIndent");
+            errors.push("line " + (i+1) + " is not indented correctly");
+            log_errors.push({type: "incorrectIndent", line: (i+1)});
+        }
+        if (code_line.code == model_line.code &&
+            code_line.indent == model_line.indent &&
+            errors.length == 0) {
+            $("#" + code_line.id).addClass("correctPosition");
+        }
+      }
+    }
+   
     if (errors.length == 0) {
         if (this.options.correctSound && $.sound) {
             $.sound.play(this.options.correctSound);
@@ -212,6 +296,8 @@ ParsonsWidget.prototype.getFeedback = function() {
     if (this.options.feedback_cb) {
         feedback_cb(); //TODO(petri): what is needed?
     }
+    this.addLogEntry({type: "feedback", errors: log_errors}, true);
+    //alert("ok");
     return errors;
 };
 
@@ -228,8 +314,8 @@ ParsonsWidget.prototype.clearFeedback = function() {
 
 
 ParsonsWidget.prototype.getRandomPermutation = function(n) {
-    var permutation = [],
-	    i;
+    var permutation = [];
+    var i;
     for (i = 0; i < n; i++) {
         permutation.push(i);
     }
@@ -244,6 +330,17 @@ ParsonsWidget.prototype.getRandomPermutation = function(n) {
     return permutation;
 };
 
+ParsonsWidget.prototype.getFixedPermutation = function(n) {
+    var permutation = [];
+    var i;
+    for (i = 0; i < n; i++) {
+        permutation.push(i);
+    }
+
+    return permutation;
+};
+
+
 ParsonsWidget.prototype.shuffleLines = function() {
     this.createHtml(this.getRandomPermutation);
 };
@@ -251,69 +348,82 @@ ParsonsWidget.prototype.shuffleLines = function() {
 /** modifies the DOM by inserting exercise elements into it */
 ParsonsWidget.prototype.createHtml = function(randomizeCallback) {
 // TODO(petri): needs more refactoring
-        var codelines = [],
-		    opt = this.options, // just to shorten code and make access faster
-            initial_state = this.modified_lines, //used only for logging
-            that = this;
-			
+        var codelines = [];
+        var initial_state = []; //used only for logging
+                
+        var that = this;
         for (var i=0; i<this.modified_lines.length; i++) {
+         /* if (i == 1) {
+            codelines.push('<li class="multiline"><ul><li id="codeline0" class="prettyprint lang-py">' + this.modified_lines[0].code + '<\/li>' +
+                '<li id="codeline' + i + '" class="prettyprint lang-py">' + this.modified_lines[i].code + '<\/li></ul></li>');
+          }else {*/
             codelines.push('<li id="codeline' + i + '" class="prettyprint lang-py">' + this.modified_lines[i].code + '<\/li>');
+//          }
         }
                 
         //randomize is a permutation array, i.e. array with index values where [1, 2, ..., n] implies nothing is permutated
         if (randomizeCallback) {
             var permutation = randomizeCallback(codelines.length);
             var randomized_lines = [];
-                        var randomized_initial = []; //used only for logging
             for (i = 0; i < codelines.length; i++) {
                 randomized_lines[i] = codelines[permutation[i]];
-                                randomized_initial = this.modified_lines[permutation[i]];
+                initial_state[i] = this.modified_lines[permutation[i]];
             }
-                        initial_state = randomized_initial;
             codelines = randomized_lines;
-        }
-        this.addLogEntry({'time': new Date(), 'initial': initial_state});
-    
-        if (opt.trashId) {
-            $("#" + opt.trashId).html('<p>'+opt.trash_label+'</p><ul id="ul-' + opt.trashId + '">'+codelines.join('')+'</ul>');
-            $("#" + opt.sortableId).html('<p>'+opt.solution_label+'</p><ul id="ul-' + opt.sortableId + '"></ul>');            
         } else {
-            $("#" + opt.sortableId).html('<ul id="ul-' + opt.sortableId + '">'+codelines.join('')+'</ul>');
+          initial_state = this.modified_lines;
         }
-        if (window.prettyPrint && (typeof(opt.prettyPrint) === "undefined" || opt.prettyPrint)) {
-            prettyPrint();
+
+        this.addLogEntry({type: 'init', time: new Date(), initial: initial_state});
+    
+        if (this.options.trashId) {
+            $("#" + this.options.trashId).html('<p>'+this.options.trash_label+'</p><ul id="ul-' + this.options.trashId + '">'+codelines.join('')+'</ul>');
+            $("#" + this.options.sortableId).html('<p>'+this.options.solution_label+'</p><ul id="ul-' + this.options.sortableId + '"></ul>');            
+        } else {
+            var d = $("#" + this.options.sortableId);
+            var h = '<ul id="ul-' + this.options.sortableId + '">'+codelines.join('')+'</ul>';
+            $("#" + this.options.sortableId).html('<ul id="ul-' + this.options.sortableId + '">'+codelines.join('')+'</ul>');
         }
-        var $sortable = $("#ul-" + opt.sortableId).sortable({
+        if (window.prettyPrint && (typeof(this.options.prettyPrint) === "undefined" || this.options.prettyPrint)) {
+            prettyPrint(); //NOT IMPLEMENTET YET?
+        }
+        var sortable = $("#ul-" + this.options.sortableId).sortable({
             start : function() { that.clearFeedback(); },
             stop : function(event, ui) {
                 if ($(event.target)[0] != ui.item.parent()[0]) {
-                    that.addLogEntry();
                     return;
                 }
                 var ind = that.updateIndent(ui.position.left - ui.item.parent().offset().left,
                                         ui.item[0].id);
                 ui.item.css("margin-left", that.options.x_indent * ind + "px");
-                that.addLogEntry();
+                that.addLogEntry({type: "moveOutput", target: ui.item[0].id}, true); 
             },
             receive : function(event, ui) {
                 var ind = that.updateIndent(ui.position.left - ui.item.parent().offset().left,
                                         ui.item[0].id);
                 ui.item.css("margin-left", that.options.x_indent * ind + "px");
+                that.addLogEntry({type: "addOutput", target: ui.item[0].id}, true); 
             },
             grid : [that.options.x_indent, 1 ]
         });
-        if (opt.trashId) {
-            var trash = $("#ul-" + opt.trashId).sortable({
-                connectWith: $sortable,
+        if (this.options.trashId) {
+            var trash = $("#ul-" + this.options.trashId).sortable({
+                connectWith: sortable,
                 start: function() { that.clearFeedback(); },
                 receive: function(event, ui) {
                     that.getLineById(ui.item[0].id).indent = 0;
                     ui.item.css("margin-left", "0");
+                    that.addLogEntry({type: "removeOutput", target: ui.item[0].id}, true); 
                 },
                 stop: function(event, ui) { 
-                    that.addLogEntry(); 
+                    if ($(event.target)[0] != ui.item.parent()[0]) {
+                        // line moved to output and logged there
+                        return;
+                    }
+                    that.addLogEntry({type: "moveInput", target: ui.item[0].id}, true); 
                 }
             });
-            $sortable.sortable('option', 'connectWith', trash);
+            sortable.sortable('option', 'connectWith', trash);
         }
-    };
+    };  
+
