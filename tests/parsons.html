@@ -2,16 +2,18 @@
           "http://www.w3.org/TR/html4/loose.dtd">
 <html>
   <head>
-    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.js"></script>
-    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.7.2/jquery-ui.js"></script>
-    <script type="text/javascript" src="../parsons.js"></script>
-    <link rel="stylesheet" href="http://github.com/jquery/qunit/raw/master/qunit/qunit.css" type="text/css" media="screen" />
-    <script type="text/javascript" src="http://github.com/jquery/qunit/raw/master/qunit/qunit.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/jquery-ui.min.js"></script>
+    <script src="../lib/underscore-min.js"></script>
+    <script src="../lib/lis.js"></script>
+    <script src="../parsons.js"></script>
+    <link rel="stylesheet" href="http://code.jquery.com/qunit/qunit-git.css" type="text/css" media="screen" />
+    <script src="http://code.jquery.com/qunit/qunit-git.js"></script>
     
     <script>
 
 var assertCodeEquals = function(lines1, lines2) {
-	equals(lines1.length, lines2.length);
+	equal(lines1.length, lines2.length);
 }
 
 module("Utilities");
@@ -22,7 +24,7 @@ test("getRondomPermutation()", function() {
         var parson = new ParsonsWidget( {'codeLines': initial,
                                          'sortableId': 'main'});
         var perm = parson.getRandomPermutation(2);
-        equals(perm.length,2);
+        equal(perm.length,2);
 		ok( (perm[0] == 0 && perm[1] == 1) || (perm[0] == 1 && perm[1] == 0) );    
     });
 
@@ -34,16 +36,16 @@ test("normalizeIndents()", function() {
         var parson = new ParsonsWidget( {'codeLines': initial,
                                          'sortableId': 'main'});
         var perm = parson.getRandomPermutation(2);
-        same(
+        deepEqual(
 			parson.normalizeIndents(jQuery.map([0, 1, 2, 1], codeLine)),	
 			jQuery.map([0, 1, 2, 1], codeLine),
 			"already normalized");
-		same(
+		deepEqual(
 			parson.normalizeIndents(jQuery.map([1, 4, 5, 4], codeLine)),	
 			jQuery.map([0, 1, 2, 1], codeLine),
 			"too much indented");
 			
-		same(
+		deepEqual(
 			parson.normalizeIndents(jQuery.map([1, 4, 5, 3], codeLine)),	
 			jQuery.map([0, 1, 2, -1], codeLine),
 			"no matching indentation");			
@@ -59,9 +61,9 @@ test("internal data structures - no extra lines", function() {
         parson.createHtml();
                                                  
         expect(3);
-        equals(parson.extra_lines.length, 0);
-        equals(parson.model_solution.length, 2);
-        equals(parson.modified_lines.length, 2);
+        equal(parson.extra_lines.length, 0);
+        equal(parson.model_solution.length, 2);
+        equal(parson.modified_lines.length, 2);
     });
 
 test("internal data structures - extra lines", function() {
@@ -92,8 +94,8 @@ test("Initialization of internal data structures - two parallel widgets", functi
         parson2.createHtml();
                                                  
         expect(2);
-        equals(parson.model_solution.length, 2);
-        equals(parson2.model_solution.length, 1);
+        equal(parson.model_solution.length, 2);
+        equal(parson2.model_solution.length, 1);
     });
 
                                          
@@ -136,8 +138,8 @@ test("First two lines swapped in the beginning", function() {
         parson.createHtml(swapPermutation);
         var modified = parson.getModifiedCode("#ul-" + 'main');
         expect(2);
-        equals(modified[0].code, 'bar');
-        equals(modified[1].code, 'foo');
+        equal(modified[0].code, 'bar');
+        equal(modified[1].code, 'foo');
     });
 
 test("First two lines are not swapped", function() {
@@ -148,8 +150,8 @@ test("First two lines are not swapped", function() {
         parson.createHtml(noPermutation);
         var modified = parson.getModifiedCode("#ul-" + 'main');
         expect(2);
-        equals(modified[0].code, 'foo');
-        equals(modified[1].code, 'bar');
+        equal(modified[0].code, 'foo');
+        equal(modified[1].code, 'bar');
     });
 
   
