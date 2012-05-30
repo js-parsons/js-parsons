@@ -42,43 +42,44 @@ ParsonsWidget.prototype.parseCode = function(lines, max_distractors) {
     errors = [],
     that = this;   
     $.each(lines, function(index, item) {
-        if (item.search(/#distractor\s*$/) >= 0) {
-	    lineObject = { 
-		code: item.replace(/#distractor\s*$/,"").trim().replace(/\\n/,"\n"),
-		indent: -1,
-		distractor: true,
-		orig: index
-	    };
-	    if (lineObject.code.length > 0) {
-		distractors.push(lineObject);
-	    }
-	} else {
-	    lineObject = that.parseLine(item);
-	    if (lineObject.code.length > 0) {
-		lineObject.distractor = false;
-		lineObject.orig = index;     
-		indented.push(lineObject);
-	    }
-	}    
+	    if (item.search(/#distractor\s*$/) >= 0) {
+		lineObject = { 
+		    code: item.replace(/#distractor\s*$/,"").trim().replace(/\\n/,"\n"),
+		    indent: -1,
+		    distractor: true,
+		    orig: index
+		};
+		if (lineObject.code.length > 0) {
+		    distractors.push(lineObject);
+		}
+	    } else {
+		lineObject = that.parseLine(item);
+		if (lineObject.code.length > 0) {
+		    lineObject.distractor = false;
+		    lineObject.orig = index;     
+		    indented.push(lineObject);
+		}
+	    }    
 	});
     
     // Normalize indents and make sure indentation is valid
     var normalized = this.normalizeIndents(indented);
-
+    
     $.each(normalized, function(index, item) {
-        if (item.indent < 0) {
-	    errors.push("Line " + normalized.orig + " is not correctly indented. No matching indentation."); 
-	}
-	widgetData.push(item);
+	    if (item.indent < 0) {
+		errors.push("Line " + normalized.orig + " is not correctly indented. No matching indentation."); 
+	    }
+	    widgetData.push(item);
         });
-
+    
     // Remove extra distractors
     permutation = this.getRandomPermutation(distractors.length)
     var selected_distractors = []
     for (var i = 0; i < max_distractors; i++) {
 	selected_distractors.push(distractors[permutation[i]]);
+	widgetData.push(distractors[permutation[i]]);
     }
-
+    
     return {
 	solution:  $.extend(true, [], normalized),
         distractors: $.extend(true, [], selected_distractors),
