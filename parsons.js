@@ -1,3 +1,4 @@
+(function() { // wrap in anonymous function to not show some helper variables
 var ParsonsWidget = function(options) {
     this.modified_lines = [];
     this.extra_lines = [];
@@ -24,12 +25,14 @@ var ParsonsWidget = function(options) {
             'incorrectIndent' : 'incorrectIndent'};
 };
 
+// regexp used for trimming
+var trimRegexp = /^\s*(.*?)\s*$/;
 
 //Public methods
 
 ParsonsWidget.prototype.parseLine = function(spacePrefixedLine) {
     return {
-	code: spacePrefixedLine.trim().replace(/\\n/,"\n"),
+	code: spacePrefixedLine.replace(trimRegexp, "$1").replace(/\\n/,"\n"),
 	indent: spacePrefixedLine.length - spacePrefixedLine.replace(/^\s+/,"").length
     };
 }
@@ -44,7 +47,7 @@ ParsonsWidget.prototype.parseCode = function(lines, max_distractors) {
     $.each(lines, function(index, item) {
 	    if (item.search(/#distractor\s*$/) >= 0) {
 		lineObject = { 
-		    code: item.replace(/#distractor\s*$/,"").trim().replace(/\\n/,"\n"),
+		    code: item.replace(/#distractor\s*$/,"").replace(trimRegexp, "$1").replace(/\\n/,"\n"),
 		    indent: -1,
 		    distractor: true,
 		    orig: index
@@ -409,5 +412,6 @@ ParsonsWidget.prototype.createHtml = function(randomizeCallback) {
             });
             sortable.sortable('option', 'connectWith', trash);
         }
-    };  
-
+    };
+    window['ParsonsWidget'] = ParsonsWidget;
+})();
