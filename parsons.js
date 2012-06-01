@@ -364,8 +364,12 @@ ParsonsWidget.prototype.createHtml = function(randomizeCallback) {
         this.addLogEntry({type: 'init', time: new Date(), initial: initial_state});
     
         if (this.options.trashId) {
-            $("#" + this.options.trashId).html('<p>'+this.options.trash_label+'</p><ul id="ul-' + this.options.trashId + '">'+codelines.join('')+'</ul>');
-            $("#" + this.options.sortableId).html('<p>'+this.options.solution_label+'</p><ul id="ul-' + this.options.sortableId + '"></ul>');            
+            var html = (this.options.trash_label?'<p>'+this.options.trash_label+'</p>':'') + 
+                      '<ul id="ul-' + this.options.trashId + '">'+codelines.join('')+'</ul>';
+            $("#" + this.options.trashId).html(html);
+            html = (this.options.solution_label?'<p>'+this.options.solution_label+'</p>':'') + 
+                  '<ul id="ul-' + this.options.sortableId + '"></ul>'
+            $("#" + this.options.sortableId).html(html);
         } else {
             var d = $("#" + this.options.sortableId);
             var h = '<ul id="ul-' + this.options.sortableId + '">'+codelines.join('')+'</ul>';
