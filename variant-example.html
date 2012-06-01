@@ -1,11 +1,20 @@
 <html>
     <head>
         <title>parsons</title>
-		<link rel="stylesheet" href="parsons.css"/>
+		    <link rel="stylesheet" href="parsons.css"/>
         <link href="lib/prettify.css" type="text/css" rel="stylesheet" />
         <script src="lib/prettify.js"></script>
     </head>
     <body>
+  	<div id="sortableTrash" class="sortable-code"><p>Trash</p>
+		</div>
+        <div id="sortable" class="sortable-code"><p>Solution</p>
+		</div>
+		<div style="clear:both;"></div>
+        <p>
+            <a href="#" id="newInstanceLink">New instance</a>
+            <a href="#" id="feedbackLink">Get feedback</a>
+        </p>
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
     <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/jquery-ui.min.js"></script>
     <script src="lib/underscore-min.js"></script>
@@ -37,16 +46,5 @@
             
         });
     </script>
-    </head>
-    <body>
-    	<div id="sortableTrash" class="sortable-code"><p>Trash</p>
-		</div>
-        <div id="sortable" class="sortable-code"><p>Solution</p>
-		</div>
-		<div style="clear:both;"></div>
-        <p>
-            <a href="#" id="newInstanceLink">New instance</a>
-            <a href="#" id="feedbackLink">Get feedback</a>
-        </p>
     </body>
 </html>
