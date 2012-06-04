@@ -180,6 +180,11 @@
      if (!(this.state_path[this.state_path.length - 1] === state)) {
        this.state_path.push(state);
      }
+
+     // callback for reacting to actions
+     if ($.isFunction(this.options.action_cb)) {
+       this.options.action_cb.apply(this);
+     }
    };
 
    /**
@@ -265,7 +270,7 @@
      for (var i=0; i<lines.length; i++) {
        codelines.push('<li style="margin-left: ' + lines[i].indent * this.options.x_indent + 'px" class="prettyprint lang-py">' +  lines[i].code + '<\/li>');
      }
-     return ('<ul>'+codelines.join('')+'</ul>');
+     return ('<ul class="ui-sortable">'+codelines.join('')+'</ul>');
    };
 
    
