@@ -146,7 +146,7 @@ ParsonsWidget.prototype.addLogEntry = function(entry, extend) {
     }
     
     //Updating the state history
-    
+    this.states[state] = logData;
     if (!(this.state_path[this.state_path.length - 1] === state)) {
     	this.state_path.push(state);
     }
