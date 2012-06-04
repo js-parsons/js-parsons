@@ -111,8 +111,7 @@
      var hash = [];
      ids = $("#ul-" + this.options.sortableId).sortable('toArray');
      for (var i = 0; i < ids.length; i++) {
-       hash.push(ids[i].replace("codeline", ""));
-       hash.push(this.getLineById(ids[i]).indent);
+       hash.push(ids[i].replace("codeline", "") + "_" + this.getLineById(ids[i]).indent);
      }
      //prefix with something to handle empty output situations
      if (hash.length == 0) {
@@ -121,10 +120,33 @@
        return hash.join("-");
      }
    };
-
+   
+   ParsonsWidget.prototype.lineObjectsFromHash = function(hash) {
+     var lines = [];
+     var lineValues;
+     var lineObject;
+     var h = hash.split("-");
+     
+     for (var i = 0; i < h.length; i++) {
+       lineValues = h[i].split("_");
+       lines.push( 
+         {
+           code: getLineById("codeline"+lineValues[0]),
+           indent: lineValues[1]
+         });
+     }
+     return lines;
+   };
+   
+   ParsonsWidget.prototype.whatWeDidPreviously = function() {
+     var previously = this.states[this.getHash()];
+     return previously;
+   };
+   
    ParsonsWidget.prototype.addLogEntry = function(entry, extend) {
      var logData = {};
      var state = this.getHash();
+     var previousState;
      if (entry && !extend) {
        this.user_actions.push(entry);
      } else {
@@ -149,7 +171,12 @@
      }
      
      //Updating the state history
-     this.states[state] = logData;
+     if(this.state_path.length > 0) {
+       previousState = this.state_path[this.state_path.length - 1];
+       this.states[previousState] = logData;
+     }
+
+     //Add new item to the state path only if new and previous states are not equal
      if (!(this.state_path[this.state_path.length - 1] === state)) {
        this.state_path.push(state);
      }
@@ -233,6 +260,19 @@
      return lines_to_return;
    };
 
+   ParsonsWidget.prototype.getHtml = function(lines) {
+     var codelines = [];
+     for (var i=0; i<lines.length; i++) {
+       codelines.push('<li style="margin-left: ' + lines[i].indent * this.options.x_indent + 'px" class="prettyprint lang-py">' +  lines[i].code + '<\/li>');
+     }
+     return ('<ul>'+codelines.join('')+'</ul>');
+   };
+
+   
+   ParsonsWidget.prototype.getHtmlFromHash = function(hashes) {
+     var lines = this.getLinesFromHash(hashes);
+     return getHtml(lines);
+   };
 
    /**
     * TODO(petri) refoctor to UI
@@ -445,5 +485,6 @@
        sortable.sortable('option', 'connectWith', trash);
      }
    };
-   window['ParsonsWidget'] = ParsonsWidget;
+
+     window['ParsonsWidget'] = ParsonsWidget;
  })();

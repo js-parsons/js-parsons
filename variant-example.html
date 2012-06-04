@@ -1,20 +1,24 @@
 <html>
-    <head>
-        <title>parsons</title>
-		    <link rel="stylesheet" href="parsons.css"/>
-        <link href="lib/prettify.css" type="text/css" rel="stylesheet" />
-        <script src="lib/prettify.js"></script>
-    </head>
-    <body>
-  	<div id="sortableTrash" class="sortable-code"><p>Trash</p>
-		</div>
-        <div id="sortable" class="sortable-code"><p>Solution</p>
-		</div>
-		<div style="clear:both;"></div>
+  <head>
+    <title>parsons</title>
+    <link rel="stylesheet" href="parsons.css"/>
+    <link href="lib/prettify.css" type="text/css" rel="stylesheet" />
+    <script src="lib/prettify.js"></script>
+  </head>
+  <body>
+    <div id="sortableTrash" class="sortable-code"><p>Trash</p></div>
+    <div id="sortable" class="sortable-code"><p>Solution</p></div>
+	<div style="clear:both;"></div>
         <p>
             <a href="#" id="newInstanceLink">New instance</a>
             <a href="#" id="feedbackLink">Get feedback</a>
+            <a href="#" id="previouslyLink">previously</a>
         </p>
+	<div style="clear:both;"></div>
+
+    <div id="last" class="sortable-code"><p>Solution</p></div>
+	<div style="clear:both;"></div>
+
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
     <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/jquery-ui.min.js"></script>
     <script src="lib/underscore-min.js"></script>
@@ -43,8 +47,20 @@
                 event.preventDefault();
                 parson.getFeedback();
             });
-            
-        });
+            $("#previouslyLink").click(function(event){
+                event.preventDefault();
+                var action = parson.whatWeDidPreviously();
+                if (!action) {
+                  alert("nothing");
+                } else {
+                  var html = parson.getHtml(action.output);
+                  $("#last").html(html);
+                  //var p2 = new ParsonsWidget({'sortableId': 'sortable2',});
+                  //p2.modified_lines = $.extend(true, [], action.output);
+                  //p2.createHtml();
+                }
+            });
+         });
     </script>
     </body>
 </html>
