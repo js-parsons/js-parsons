@@ -6,6 +6,10 @@ var ParsonsWidget = function(options) {
 
     //To collect statistics, feedback should not be based on this
     this.user_actions = [];
+
+    //State history for feedback purposes
+    this.state_path = [];
+    this.states = new Object();
     
     var defaults = { 
             'incorrectSound': false,
@@ -103,8 +107,21 @@ ParsonsWidget.prototype.init = function(text) {
 
 };
 
+ParsonsWidget.prototype.getHash = function() {
+    var ids = [];
+    var hash = [];
+    ids = $("#ul-" + this.options.sortableId).sortable('toArray');
+    for (var i = 0; i < ids.length; i++) {
+	hash.push(ids[i].replace("codeline", ""));
+	hash.push(this.getLineById(ids[i]).indent);
+    }
+    //prefix with something to handle empty output situations
+    return "s" + hash.join("-");
+};
+
 ParsonsWidget.prototype.addLogEntry = function(entry, extend) {
     var logData = {};
+    var state = this.getHash();
     if (entry && !extend) {
         this.user_actions.push(entry);
     } else {
@@ -126,6 +143,12 @@ ParsonsWidget.prototype.addLogEntry = function(entry, extend) {
           jQuery.extend(logData, entry);
         }
         this.user_actions.push(logData);
+    }
+    
+    //Updating the state history
+    
+    if (!(this.state_path[this.state_path.length - 1] === state)) {
+    	this.state_path.push(state);
     }
 };
 
