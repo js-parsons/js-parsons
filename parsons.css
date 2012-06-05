@@ -15,6 +15,7 @@
     padding-bottom: 10px;
     padding-left: 0;
     margin-left: 0;
+    border: 1px solid #efefff;;
 }
 .sortable-code li {
     -moz-border-radius:10px;
@@ -33,8 +34,8 @@
 }
 
 ul.incorrect {
-    background-color: #FFBABA;
-    border: 1px solid;
+    border: 1px solid red;
+    background-color: #ffefef;
 }
 
 ul.correct {
