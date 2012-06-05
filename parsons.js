@@ -1,4 +1,10 @@
 (function() { // wrap in anonymous function to not show some helper variables
+
+   // regexp used for trimming
+   var trimRegexp = /^\s*(.*?)\s*$/;
+
+   var ID_PREFIX = "codeline";
+
    var ParsonsWidget = function(options) {
      this.modified_lines = [];
      this.extra_lines = [];
@@ -28,10 +34,7 @@
                               'correctIndent' : 'correctIndent',
                               'incorrectIndent' : 'incorrectIndent'};
    };
-   
-   // regexp used for trimming
-   var trimRegexp = /^\s*(.*?)\s*$/;
-   
+      
    //Public methods  
    ParsonsWidget.prototype.parseLine = function(spacePrefixedLine) {
      return {
@@ -100,18 +103,18 @@
      this.modified_lines = initial_structures.widgetInitial;
 
      $.each(this.modified_lines, function(index, item) {
-              item.id = 'codeline' + index;
+              item.id = ID_PREFIX + index;
               item.indent = 0;
             });
 
    };
 
-   ParsonsWidget.prototype.getHash = function() {
+   ParsonsWidget.prototype.getHash = function(searchString) {
      var ids = [];
      var hash = [];
-     ids = $("#ul-" + this.options.sortableId).sortable('toArray');
+     ids = $(searchString).sortable('toArray');
      for (var i = 0; i < ids.length; i++) {
-       hash.push(ids[i].replace("codeline", "") + "_" + this.getLineById(ids[i]).indent);
+       hash.push(ids[i].replace(ID_PREFIX, "") + "_" + this.getLineById(ids[i]).indent);
      }
      //prefix with something to handle empty output situations
      if (hash.length == 0) {
@@ -131,7 +134,7 @@
        lineValues = h[i].split("_");
        lines.push( 
          {
-           code: getLineById("codeline"+lineValues[0]),
+           code: getLineById(ID_PREFIX + lineValues[0]),
            indent: lineValues[1]
          });
      }
@@ -139,37 +142,32 @@
    };
    
    ParsonsWidget.prototype.whatWeDidPreviously = function() {
-     var previously = this.states[this.getHash()];
+     var hash = this.getHash("#ul-" + this.options.sortableId);
+     var previously = this.states[hash];
      return previously;
    };
    
-   ParsonsWidget.prototype.addLogEntry = function(entry, extend) {
-     var logData = {};
-     var state = this.getHash();
-     var previousState;
-     if (entry && !extend) {
-       this.user_actions.push(entry);
-     } else {
-       if (this.options.trashId) {
-         logData = {
-           time: new Date(),
-           output: jQuery.extend(true, [], this.getModifiedCode("#ul-" + this.options.sortableId)),
-           input: jQuery.extend(true, [], this.getModifiedCode("#ul-" + this.options.trashId)),
-           type: "action"
-         };
-       } else {
-         logData = {
-           time: new Date(),
-           output: jQuery.extend(true, [], this.getModifiedCode("#ul-" + this.options.sortableId)),
-           type: "action"
-         };
-       }
-       if (entry && extend) {
-         jQuery.extend(logData, entry);
-       }
-       this.user_actions.push(logData);
-     }
+   ParsonsWidget.prototype.addLogEntry = function(entry) {
+     var state, previousState;
+     var logData = {
+       time: new Date(),
+       output: this.getHash("#ul-" + this.options.sortableId),
+       type: "action"
+     };
      
+     if (this.options.trashId) {
+       logData['input'] = this.getHash("#ul-" + this.options.trashId);
+     }
+
+     if (entry.target) {
+       entry.target = entry.target.replace(ID_PREFIX, "");
+     }
+
+     state = logData.output;
+
+     jQuery.extend(logData, entry);
+     this.user_actions.push(logData);
+
      //Updating the state history
      if(this.state_path.length > 0) {
        previousState = this.state_path[this.state_path.length - 1];
@@ -260,18 +258,46 @@
      return lines_to_return;
    };
 
-   ParsonsWidget.prototype.getHtml = function(lines) {
+   ParsonsWidget.prototype.getHtml = function(lines, id_prefix) {
      var codelines = [];
+     if (!id_prefix) {
+       id_prefix = ID_PREFIX;
+     }
+
      for (var i=0; i<lines.length; i++) {
-       codelines.push('<li style="margin-left: ' + lines[i].indent * this.options.x_indent + 'px" class="prettyprint lang-py">' +  lines[i].code + '<\/li>');
+       codelines.push(
+         '<li id="' + id_prefix + i + 
+           '" style="margin-left: ' + lines[i].indent * this.options.x_indent + 
+           'px" class="prettyprint lang-py">' +  
+           lines[i].code + '<\/li>');
      }
      return ('<ul>'+codelines.join('')+'</ul>');
    };
 
    
-   ParsonsWidget.prototype.getHtmlFromHash = function(hashes) {
-     var lines = this.getLinesFromHash(hashes);
-     return getHtml(lines);
+   ParsonsWidget.prototype.getHtmlFromHash = function(hash, id_prefix) {
+     if (!id_prefix) {
+       id_prefix = ID_PREFIX;
+     }
+     var lines = this.getLinesFromHash(hash);
+     return this.getHtml(lines, id_prefix);
+   };
+
+   ParsonsWidget.prototype.getLinesFromHash = function(hash) {
+     var lines = [];
+     var lineValues;
+     var lineObject;
+     var h = hash.split("-");
+     
+     for (var i = 0; i < h.length; i++) {
+       lineValues = h[i].split("_");
+       lines.push( 
+         {
+           code: this.getLineById(ID_PREFIX + lineValues[0]).code,
+           indent: lineValues[1]
+         });
+     }
+     return lines;
    };
 
    /**
@@ -300,7 +326,7 @@
      var inv = LIS.best_lise_inverse(lines);
      var incorrectLines = [];
      _.each(inv, function(itemId) {
-              $("#codeline" + itemId).addClass("incorrectPosition");
+              $("#" + ID_PREFIX + itemId).addClass("incorrectPosition");
               incorrectLines.push(itemId);
             });
      if (inv.length > 0) {
@@ -354,7 +380,7 @@
      if (this.options.feedback_cb) {
        feedback_cb(); //TODO(petri): what is needed?
      }
-     this.addLogEntry({type: "feedback", errors: log_errors}, true);
+     this.addLogEntry({type: "feedback", errors: log_errors});
      //alert("ok");
      return errors;
    };
@@ -411,7 +437,7 @@
      
      var that = this;
      for (var i=0; i<this.modified_lines.length; i++) {
-       codelines.push('<li id="codeline' + i + '" class="prettyprint lang-py">' + this.modified_lines[i].code + '<\/li>');
+       codelines.push('<li id="' + ID_PREFIX + i + '" class="prettyprint lang-py">' + this.modified_lines[i].code + '<\/li>');
      }
      
      //randomize is a permutation array, i.e. array with index values where [1, 2, ..., n] implies nothing is permutated
@@ -426,8 +452,6 @@
      } else {
        initial_state = this.modified_lines;
      }
-
-     this.addLogEntry({type: 'init', time: new Date(), initial: initial_state});
      
      if (this.options.trashId) {
        var html = (this.options.trash_label?'<p>'+this.options.trash_label+'</p>':'') + 
@@ -441,9 +465,11 @@
        var h = '<ul id="ul-' + this.options.sortableId + '">'+codelines.join('')+'</ul>';
        $("#" + this.options.sortableId).html('<ul id="ul-' + this.options.sortableId + '">'+codelines.join('')+'</ul>');
      }
+
      if (window.prettyPrint && (typeof(this.options.prettyPrint) === "undefined" || this.options.prettyPrint)) {
-       prettyPrint(); //NOT IMPLEMENTET YET?
+       prettyPrint();
      }
+
      var sortable = $("#ul-" + this.options.sortableId).sortable(
        { 
          start : function() { that.clearFeedback(); },
@@ -484,6 +510,7 @@
          });
        sortable.sortable('option', 'connectWith', trash);
      }
+     this.addLogEntry({type: 'init', time: new Date(), bindings: this.modified_lines});
    };
 
      window['ParsonsWidget'] = ParsonsWidget;
