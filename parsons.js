@@ -181,7 +181,7 @@
 
      // callback for reacting to actions
      if ($.isFunction(this.options.action_cb)) {
-       this.options.action_cb.apply(this);
+       this.options.action_cb.call(this, logData);
      }
    };
 
