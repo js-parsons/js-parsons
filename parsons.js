@@ -127,7 +127,11 @@
    ParsonsWidget.prototype.whatWeDidPreviously = function() {
      var hash = this.getHash("#ul-" + this.options.sortableId);
      var previously = this.states[hash];
-     return previously;
+     var visits = _.filter(this.state_path, function(state) {
+                             return state == hash;
+                           }).length - 1;
+              
+     return $.extend(false, {'visits': visits}, previously);
    };
    
    ParsonsWidget.prototype.addLogEntry = function(entry) {
