@@ -313,17 +313,30 @@
      var student_code = this.normalizeIndents(this.getModifiedCode("#ul-" + this.options.sortableId));
      var lines_to_check = Math.min(student_code.length, this.model_solution.length);
      var errors = [], log_errors = [];
+     var incorrectLines = [], lines = [];
+     var id, line;
+
+     for (var i=0; i<student_code.length; i++) {
+       line = student_code[i];
+       id = parseInt(line.id.replace(ID_PREFIX, ""), 10);
+       if (line.distractor) {
+         incorrectLines.push(id);
+         $("#" + ID_PREFIX + id).addClass("incorrectPosition");
+       } else {
+         lines.push(id);                          
+       }
+     }
+
+     //remove distractors from lines and add all those to the set of misplaced lines
+     //_.each(lines)
      
-     var lines = _.map(student_code, function(line) {
-                         return parseInt(line.id.substring(8), 10);
-                       });
      var inv = LIS.best_lise_inverse(lines);
-     var incorrectLines = [];
+
      _.each(inv, function(itemId) {
               $("#" + ID_PREFIX + itemId).addClass("incorrectPosition");
               incorrectLines.push(itemId);
             });
-     if (inv.length > 0) {
+     if (inv.length > 0 || errors.length > 0) {
        errors.push("Some lines in incorrect position relative to others");
        log_errors.push({type: "incorrectPosition", lines: incorrectLines});
      }
