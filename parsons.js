@@ -82,8 +82,8 @@
             });
      
      // Remove extra distractors
-     permutation = this.getRandomPermutation(distractors.length)
-     var selected_distractors = []
+     var permutation = this.getRandomPermutation(distractors.length);
+     var selected_distractors = [];
      for (var i = 0; i < max_distractors; i++) {
        selected_distractors.push(distractors[permutation[i]]);
        widgetData.push(distractors[permutation[i]]);
@@ -117,28 +117,11 @@
        hash.push(ids[i].replace(ID_PREFIX, "") + "_" + this.getLineById(ids[i]).indent);
      }
      //prefix with something to handle empty output situations
-     if (hash.length == 0) {
+     if (hash.length === 0) {
        return "-";
      } else {
        return hash.join("-");
      }
-   };
-   
-   ParsonsWidget.prototype.lineObjectsFromHash = function(hash) {
-     var lines = [];
-     var lineValues;
-     var lineObject;
-     var h = hash.split("-");
-     
-     for (var i = 0; i < h.length; i++) {
-       lineValues = h[i].split("_");
-       lines.push( 
-         {
-           code: getLineById(ID_PREFIX + lineValues[0]),
-           indent: lineValues[1]
-         });
-     }
-     return lines;
    };
    
    ParsonsWidget.prototype.whatWeDidPreviously = function() {
@@ -156,7 +139,7 @@
      };
      
      if (this.options.trashId) {
-       logData['input'] = this.getHash("#ul-" + this.options.trashId);
+       logData.input = this.getHash("#ul-" + this.options.trashId);
      }
 
      if (entry.target) {
@@ -175,7 +158,7 @@
      }
 
      //Add new item to the state path only if new and previous states are not equal
-     if (!(this.state_path[this.state_path.length - 1] === state)) {
+     if (this.state_path[this.state_path.length - 1] !== state) {
        this.state_path.push(state);
      }
 
@@ -294,7 +277,7 @@
      var lineObject;
      var h;
 
-     if (hash == "-") {
+     if (hash === "-") {
        h = [];
      } else {
        h = hash.split("-");
@@ -469,7 +452,7 @@
          '<ul id="ul-' + this.options.trashId + '">'+codelines.join('')+'</ul>';
        $("#" + this.options.trashId).html(html);
        html = (this.options.solution_label?'<p>'+this.options.solution_label+'</p>':'') + 
-         '<ul id="ul-' + this.options.sortableId + '"></ul>'
+         '<ul id="ul-' + this.options.sortableId + '"></ul>';
        $("#" + this.options.sortableId).html(html);
      } else {
        var d = $("#" + this.options.sortableId);
