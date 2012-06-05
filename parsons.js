@@ -254,7 +254,7 @@
 
      for (var i=0; i<lines.length; i++) {
        codelines.push(
-         '<li id="' + id_prefix + i + 
+         '<li id="' + id_prefix + lines[i].id.replace(ID_PREFIX, "") + 
            '" style="margin-left: ' + lines[i].indent * this.options.x_indent + 
            'px" class="prettyprint lang-py">' +  
            lines[i].code + '<\/li>');
@@ -285,10 +285,12 @@
      
      for (var i = 0; i < h.length; i++) {
        lineValues = h[i].split("_");
+       
        lines.push( 
          {
            code: this.getLineById(ID_PREFIX + lineValues[0]).code,
-           indent: lineValues[1]
+           indent: lineValues[1],
+           id: this.getLineById(ID_PREFIX + lineValues[0]).id
          });
      }
      return lines;
