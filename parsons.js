@@ -339,18 +339,18 @@
               incorrectLines.push(itemId);
             });
      if (inv.length > 0 || errors.length > 0) {
-       errors.push("Some lines in incorrect position relative to others");
+       errors.push("Some lines in incorrect position relative to others.");
        log_errors.push({type: "incorrectPosition", lines: incorrectLines});
      }
      
      // Always show this feedback
      if (this.model_solution.length < student_code.length) {
        $("#ul-" + this.options.sortableId).addClass("incorrect");
-       errors.push("Too many lines in your solution");
+       errors.push("Too many lines in your solution.");
        log_errors.push({type: "tooManyLines", lines: student_code.length});
      } else if (this.model_solution.length > student_code.length){
        $("#ul-" + this.options.sortableId).addClass("incorrect");
-       errors.push("Too few lines in your solution");
+       errors.push("Too few lines in your solution.");
        log_errors.push({type: "tooFewLines", lines: student_code.length});
      }
      
@@ -368,7 +368,7 @@
          if (code_line.indent !== model_line.indent && 
              ((!this.options.first_error_only) || errors.length == 0)) {
            $("#" + code_line.id).addClass("incorrectIndent");
-           errors.push("line " + (i+1) + " is not indented correctly");
+           errors.push("Line " + (i+1) + " is not indented correctly.");
            log_errors.push({type: "incorrectIndent", line: (i+1)});
          }
          if (code_line.code == model_line.code &&
