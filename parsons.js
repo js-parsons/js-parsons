@@ -292,7 +292,13 @@
      var lines = [];
      var lineValues;
      var lineObject;
-     var h = hash.split("-");
+     var h;
+
+     if (hash == "-") {
+       h = [];
+     } else {
+       h = hash.split("-");
+     }   
      
      for (var i = 0; i < h.length; i++) {
        lineValues = h[i].split("_");
