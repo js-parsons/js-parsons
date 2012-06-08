@@ -164,11 +164,10 @@
      //Add new item to the state path only if new and previous states are not equal
      if (this.state_path[this.state_path.length - 1] !== state) {
        this.state_path.push(state);
-     }
-
-     // callback for reacting to actions
-     if ($.isFunction(this.options.action_cb)) {
-       this.options.action_cb.call(this, logData);
+       // callback for reacting to actions
+       if ($.isFunction(this.options.action_cb)) {
+         this.options.action_cb.call(this, logData);
+       }
      }
    };
 
