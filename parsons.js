@@ -502,6 +502,7 @@
          },
          grid : [that.options.x_indent, 1 ]
        });
+     sortable.addClass("output");
      if (this.options.trashId) {
        var trash = $("#ul-" + this.options.trashId).sortable(
          {
