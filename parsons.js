@@ -15,9 +15,9 @@
      
      //State history for feedback purposes
      this.state_path = [];
-     this.states = new Object();
+     this.states = {};
      
-     var defaults = { 
+     var defaults = {
        'incorrectSound': false,
        'x_indent': 50,
        'feedback_cb': false,
@@ -35,7 +35,7 @@
                               'incorrectIndent' : 'incorrectIndent'};
    };
       
-   //Public methods  
+   //Public methods
    ParsonsWidget.prototype.parseLine = function(spacePrefixedLine) {
      return {
        code: spacePrefixedLine.replace(trimRegexp, "$1").replace(/\\n/,"\n"),
@@ -49,10 +49,10 @@
      widgetData = [],
      lineObject,
      errors = [],
-     that = this;   
+     that = this;
      $.each(lines, function(index, item) {
               if (item.search(/#distractor\s*$/) >= 0) {
-                lineObject = { 
+                lineObject = {
                   code: item.replace(/#distractor\s*$/,"").replace(trimRegexp, "$1").replace(/\\n/,"\n"),
                   indent: -1,
                   distractor: true,
@@ -65,10 +65,10 @@
                 lineObject = that.parseLine(item);
                 if (lineObject.code.length > 0) {
                   lineObject.distractor = false;
-                  lineObject.orig = index;     
+                  lineObject.orig = index;
                   indented.push(lineObject);
                 }
-              }    
+              }
             });
      
      // Normalize indents and make sure indentation is valid
@@ -76,7 +76,7 @@
      
      $.each(normalized, function(index, item) {
               if (item.indent < 0) {
-                errors.push("Line " + normalized.orig + " is not correctly indented. No matching indentation."); 
+                errors.push("Line " + normalized.orig + " is not correctly indented. No matching indentation.");
               }
               widgetData.push(item);
             });
@@ -181,7 +181,7 @@
    };
 
    /**
-    * Update indentation of a line based on new coordinates 
+    * Update indentation of a line based on new coordinates
     * leftDiff horizontal difference from (before and after drag) in px
     ***/
    ParsonsWidget.prototype.updateIndent = function(leftDiff, id) {
@@ -193,7 +193,7 @@
    };
 
    /**
-    * 
+    *
     * @param id
     * @return
     */
@@ -243,9 +243,9 @@
      return normalized;
    };
 
-   /** 
-    * Retrieve the code lines based on what is in the DOM 
-    * 
+   /**
+    * Retrieve the code lines based on what is in the DOM
+    *
     * TODO(petri) refactor to UI
     * */
    ParsonsWidget.prototype.getModifiedCode = function(search_string) {
@@ -267,9 +267,9 @@
 
      for (var i=0; i<lines.length; i++) {
        codelines.push(
-         '<li id="' + id_prefix + lines[i].id.replace(ID_PREFIX, "") + 
-           '" style="margin-left: ' + lines[i].indent * this.options.x_indent + 
-           'px" class="prettyprint lang-py">' +  
+         '<li id="' + id_prefix + lines[i].id.replace(ID_PREFIX, "") +
+           '" style="margin-left: ' + lines[i].indent * this.options.x_indent +
+           'px" class="prettyprint lang-py">' +
            lines[i].code + '<\/li>');
      }
      return ('<ul class="ui-sortable" id="ul-' + id_prefix + '">'+codelines.join('')+'</ul>');
@@ -294,12 +294,12 @@
        h = [];
      } else {
        h = hash.split("-");
-     }   
+     }
      
      for (var i = 0; i < h.length; i++) {
        lineValues = h[i].split("_");
        
-       lines.push( 
+       lines.push(
          {
            code: this.getLineById(ID_PREFIX + lineValues[0]).code,
            indent: lineValues[1],
@@ -360,25 +360,25 @@
        log_errors.push({type: "tooFewLines", lines: student_code.length});
      }
      
-     if (errors.length == 0) { // check indent if no other errors
+     if (errors.length === 0) { // check indent if no other errors
        for (var i = 0; i < lines_to_check; i++) {
          var code_line = student_code[i];
          var model_line = this.model_solution[i];
-         if (code_line.indent !== model_line.indent && 
-             ((!this.options.first_error_only) || errors.length == 0)) {
+         if (code_line.indent !== model_line.indent &&
+             ((!this.options.first_error_only) || errors.length === 0)) {
            $("#" + code_line.id).addClass("incorrectIndent");
            errors.push("Line " + (i+1) + " is not indented correctly.");
            log_errors.push({type: "incorrectIndent", line: (i+1)});
          }
          if (code_line.code == model_line.code &&
              code_line.indent == model_line.indent &&
-             errors.length == 0) {
+             errors.length === 0) {
            $("#" + code_line.id).addClass("correctPosition");
          }
        }
      }
 
-     if (errors.length == 0) {
+     if (errors.length === 0) {
        $("#ul-" + elemId).addClass("correct");
      }
 
@@ -470,10 +470,10 @@
      }
      
      if (this.options.trashId) {
-       var html = (this.options.trash_label?'<p>'+this.options.trash_label+'</p>':'') + 
+       var html = (this.options.trash_label?'<p>'+this.options.trash_label+'</p>':'') +
          '<ul id="ul-' + this.options.trashId + '">'+codelines.join('')+'</ul>';
        $("#" + this.options.trashId).html(html);
-       html = (this.options.solution_label?'<p>'+this.options.solution_label+'</p>':'') + 
+       html = (this.options.solution_label?'<p>'+this.options.solution_label+'</p>':'') +
          '<ul id="ul-' + this.options.sortableId + '"></ul>';
        $("#" + this.options.sortableId).html(html);
      } else {
@@ -487,7 +487,7 @@
      }
 
      var sortable = $("#ul-" + this.options.sortableId).sortable(
-       { 
+       {
          start : function() { that.clearFeedback(); },
          stop : function(event, ui) {
            if ($(event.target)[0] != ui.item.parent()[0]) {
@@ -496,13 +496,13 @@
            var ind = that.updateIndent(ui.position.left - ui.item.parent().offset().left,
                                        ui.item[0].id);
            ui.item.css("margin-left", that.options.x_indent * ind + "px");
-           that.addLogEntry({type: "moveOutput", target: ui.item[0].id}, true); 
+           that.addLogEntry({type: "moveOutput", target: ui.item[0].id}, true);
          },
          receive : function(event, ui) {
            var ind = that.updateIndent(ui.position.left - ui.item.parent().offset().left,
                                        ui.item[0].id);
            ui.item.css("margin-left", that.options.x_indent * ind + "px");
-           that.addLogEntry({type: "addOutput", target: ui.item[0].id}, true); 
+           that.addLogEntry({type: "addOutput", target: ui.item[0].id}, true);
          },
          grid : [that.options.x_indent, 1 ]
        });
@@ -515,14 +515,14 @@
            receive: function(event, ui) {
              that.getLineById(ui.item[0].id).indent = 0;
              ui.item.css("margin-left", "0");
-             that.addLogEntry({type: "removeOutput", target: ui.item[0].id}, true); 
+             that.addLogEntry({type: "removeOutput", target: ui.item[0].id}, true);
            },
-           stop: function(event, ui) { 
+           stop: function(event, ui) {
              if ($(event.target)[0] != ui.item.parent()[0]) {
                // line moved to output and logged there
                return;
              }
-             that.addLogEntry({type: "moveInput", target: ui.item[0].id}, true); 
+             that.addLogEntry({type: "moveInput", target: ui.item[0].id}, true);
            }
          });
        sortable.sortable('option', 'connectWith', trash);
