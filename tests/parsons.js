@@ -146,3 +146,10 @@ test("Wrong order", function() {
      });                                 
 
 
+module("Lis");
+test("Best lise inverse", function() {
+  deepEqual(LIS.best_lise_inverse([1, 4, 6, 2, 3, 5]), [4, 6]);
+  deepEqual(LIS.best_lise_inverse([4, 5, 6, 1, 2, 3]), [4, 5, 6]);
+  deepEqual(LIS.best_lise_inverse([3, 2, 1]), [3, 2]);
+  deepEqual(LIS.best_lise_inverse([4, 5, 1, 3, 6]), [1, 3]);
+});
