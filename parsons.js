@@ -127,11 +127,20 @@
    ParsonsWidget.prototype.whatWeDidPreviously = function() {
      var hash = this.getHash("#ul-" + this.options.sortableId);
      var previously = this.states[hash];
+     if (!previously) { return undefined; }
      var visits = _.filter(this.state_path, function(state) {
                              return state == hash;
                            }).length - 1;
-              
-     return $.extend(false, {'visits': visits}, previously);
+     var i, stepsToLast = 0, s,
+        outputStepTypes = ['removeOutput', 'addOutput', 'moveOutput'];
+     for (i = this.state_path.length - 2; i > 0; i--) {
+       s = this.states[this.state_path[i]];
+       if (s && outputStepTypes.indexOf(s.type) != -1) {
+         stepsToLast++;
+       }
+       if (hash === this.state_path[i]) { break; }
+     }
+     return $.extend(false, {'visits': visits, stepsToLast: stepsToLast}, previously);
    };
    
    ParsonsWidget.prototype.addLogEntry = function(entry) {
@@ -241,11 +250,12 @@
     * */
    ParsonsWidget.prototype.getModifiedCode = function(search_string) {
      //ids of the the modified code
-     var users_code_ids = $(search_string).sortable('toArray');
-     var lines_to_return = [];
-     for ( var i = 0; i < users_code_ids.length; i++ ) {
-       lines_to_return[i] = this.getLineById(users_code_ids[i]);
-     }
+     var lines_to_return = [],
+          that = this;
+     $(search_string).find("li").each(function(index, item) {
+       lines_to_return.push({id: $(item).attr("id"),
+                      indent: parseInt($(item).css("margin-left"), 10)/that.options.x_indent});
+     });
      return lines_to_return;
    };
 
@@ -262,7 +272,7 @@
            'px" class="prettyprint lang-py">' +  
            lines[i].code + '<\/li>');
      }
-     return ('<ul class="ui-sortable">'+codelines.join('')+'</ul>');
+     return ('<ul class="ui-sortable" id="ul-' + id_prefix + '">'+codelines.join('')+'</ul>');
    };
 
    
@@ -309,36 +319,29 @@
      alert(message);
    };
 
-   /**
-    * @return
-    * TODO(petri): Separate UI from here
-    */
-   ParsonsWidget.prototype.getFeedback = function() {
-     this.feedback_exists = true;
-     var student_code = this.normalizeIndents(this.getModifiedCode("#ul-" + this.options.sortableId));
+   ParsonsWidget.prototype.colorFeedback = function(elemId, id_prefix) {
+     var student_code = this.normalizeIndents(this.getModifiedCode("#ul-" + elemId));
      var lines_to_check = Math.min(student_code.length, this.model_solution.length);
      var errors = [], log_errors = [];
      var incorrectLines = [], lines = [];
      var id, line;
 
+     //remove distractors from lines and add all those to the set of misplaced lines
      for (var i=0; i<student_code.length; i++) {
        line = student_code[i];
-       id = parseInt(line.id.replace(ID_PREFIX, ""), 10);
+       id = parseInt(line.id.replace(id_prefix, ""), 10);
        if (line.distractor) {
          incorrectLines.push(id);
-         $("#" + ID_PREFIX + id).addClass("incorrectPosition");
+         $("#" + id_prefix + id).addClass("incorrectPosition");
        } else {
-         lines.push(id);                          
+         lines.push(id);
        }
      }
-
-     //remove distractors from lines and add all those to the set of misplaced lines
-     //_.each(lines)
      
      var inv = LIS.best_lise_inverse(lines);
 
      _.each(inv, function(itemId) {
-              $("#" + ID_PREFIX + itemId).addClass("incorrectPosition");
+              $("#" + id_prefix + itemId).addClass("incorrectPosition");
               incorrectLines.push(itemId);
             });
      if (inv.length > 0 || errors.length > 0) {
@@ -348,11 +351,11 @@
      
      // Always show this feedback
      if (this.model_solution.length < student_code.length) {
-       $("#ul-" + this.options.sortableId).addClass("incorrect");
+       $("#ul-" + elemId).addClass("incorrect");
        errors.push("Too many lines in your solution.");
        log_errors.push({type: "tooManyLines", lines: student_code.length});
      } else if (this.model_solution.length > student_code.length){
-       $("#ul-" + this.options.sortableId).addClass("incorrect");
+       $("#ul-" + elemId).addClass("incorrect");
        errors.push("Too few lines in your solution.");
        log_errors.push({type: "tooFewLines", lines: student_code.length});
      }
@@ -361,13 +364,6 @@
        for (var i = 0; i < lines_to_check; i++) {
          var code_line = student_code[i];
          var model_line = this.model_solution[i];
-         // need to uncomment following if distractors are added back!!
-         /*if (code_line.code !== model_line.code && 
-          ((!this.options.first_error_only) || errors.length == 0)) {
-          $("#" + code_line.id).addClass("incorrectPosition");
-          errors.push("line " + (i+1) + " is not correct!");
-          log_errors.push({type: "incorrectPosition", line: (i+1)});
-          }*/
          if (code_line.indent !== model_line.indent && 
              ((!this.options.first_error_only) || errors.length == 0)) {
            $("#" + code_line.id).addClass("incorrectIndent");
@@ -381,20 +377,28 @@
          }
        }
      }
-     
+
      if (errors.length == 0) {
-       if (this.options.correctSound && $.sound) {
-         $.sound.play(this.options.correctSound);
-       }    
-       $("#ul-" + this.options.sortableId).addClass("correct");
+       $("#ul-" + elemId).addClass("correct");
      }
+
+     return {errors: errors, log_errors: log_errors};
+   };
+
+   /**
+    * @return
+    * TODO(petri): Separate UI from here
+    */
+   ParsonsWidget.prototype.getFeedback = function() {
+     this.feedback_exists = true;
+     
+     var fb = this.colorFeedback(this.options.sortableId, ID_PREFIX);
      
      if (this.options.feedback_cb) {
        feedback_cb(); //TODO(petri): what is needed?
      }
-     this.addLogEntry({type: "feedback", errors: log_errors});
-     //alert("ok");
-     return errors;
+     this.addLogEntry({type: "feedback", errors: fb.log_errors});
+     return fb.errors;
    };
 
    ParsonsWidget.prototype.clearFeedback = function() {
