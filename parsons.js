@@ -2,8 +2,29 @@
 
    // regexp used for trimming
    var trimRegexp = /^\s*(.*?)\s*$/;
-
    var ID_PREFIX = "codeline";
+   var translations = {
+     fi: {
+       order: function() {
+         return "Ohjelma sisältää vääriä palasia tai palasten järjestys on väärä. Ohjelma on mahdollista korjata siirtämällä, poistamalla tai vaihtamalla korostettuja palasia.";},
+       lines_missing: function() {
+         return "Ohjelmassasi on liian vähän palasia, jotta se toimisi oikein.";},
+       no_matching: function(lineNro) { 
+         return "Korostettu palanen (" + lineNro + ") on sisennetty Pythonin kieliopin vastaisesti."},
+       block_structure: function(lineNro) { 
+         return "Korostettu palanen (" + lineNro + ") on sisennetty väärään koodilohkoon."},
+     },
+     en: {
+       order: function() {
+         return "Some lines in incorrect position relative to the others.";},
+       lines_missing: function() {
+         return "Too few lines in your solution.";},
+       no_matching: function(lineNro) { 
+         return "Line " + lineNro + " is not correctly indented. No matching indentation."},
+       block_structure: function(lineNro) { return "Line " + lineNro + " is not indented correctly."},
+     },
+   }
+
 
    var ParsonsWidget = function(options) {
      this.modified_lines = [];
@@ -24,11 +45,17 @@
        'first_error_only': true,
        'max_wrong_lines': 10,
        'trash_label': 'Drag from here',
-       'solution_label': 'Construct your solution here'
+       'solution_label': 'Construct your solution here',
+       'lang': 'en'
      };
      
      this.options = jQuery.extend({}, defaults, options);
      this.feedback_exists = false;
+     if (translations.hasOwnProperty(this.options.lang)) {
+       this.translations = translations[this.options.lang];
+     } else {
+       this.translations = translations['en'];
+     }
      this.FEEDBACK_STYLES = { 'correctPosition' : 'correctPosition',
                               'incorrectPosition' : 'incorrectPosition',
                               'correctIndent' : 'correctIndent',
@@ -76,7 +103,7 @@
      
      $.each(normalized, function(index, item) {
               if (item.indent < 0) {
-                errors.push("Line " + normalized.orig + " is not correctly indented. No matching indentation.");
+                errors.push(this.translations.no_matching(normalized.orig));
               }
               widgetData.push(item);
             });
@@ -325,19 +352,21 @@
      var errors = [], log_errors = [];
      var incorrectLines = [], lines = [];
      var id, line;
-
+     var wrong_order = false;
+     
      //remove distractors from lines and add all those to the set of misplaced lines
      for (var i=0; i<student_code.length; i++) {
-       line = student_code[i];
+       line = this.getLineById(student_code[i].id);
        id = parseInt(line.id.replace(id_prefix, ""), 10);
-       if (line.distractor) {
+       if (line.distractor) {         
          incorrectLines.push(id);
+         wrong_order = true;
          $("#" + id_prefix + id).addClass("incorrectPosition");
        } else {
          lines.push(id);
        }
      }
-     
+
      var inv = LIS.best_lise_inverse(lines);
 
      _.each(inv, function(itemId) {
@@ -345,18 +374,22 @@
               incorrectLines.push(itemId);
             });
      if (inv.length > 0 || errors.length > 0) {
-       errors.push("Some lines in incorrect position relative to others.");
+       wrong_order = true;
        log_errors.push({type: "incorrectPosition", lines: incorrectLines});
      }
-     
+
+     if (wrong_order) {
+       errors.push(this.translations.order());
+     }
+
      // Always show this feedback
      if (this.model_solution.length < student_code.length) {
-       $("#ul-" + elemId).addClass("incorrect");
-       errors.push("Too many lines in your solution.");
+       //$("#ul-" + elemId).addClass("incorrect");
+       //errors.push("Too many lines in your solution.");
        log_errors.push({type: "tooManyLines", lines: student_code.length});
      } else if (this.model_solution.length > student_code.length){
        $("#ul-" + elemId).addClass("incorrect");
-       errors.push("Too few lines in your solution.");
+       errors.push(this.translations.lines_missing());
        log_errors.push({type: "tooFewLines", lines: student_code.length});
      }
      
@@ -367,7 +400,7 @@
          if (code_line.indent !== model_line.indent &&
              ((!this.options.first_error_only) || errors.length === 0)) {
            $("#" + code_line.id).addClass("incorrectIndent");
-           errors.push("Line " + (i+1) + " is not indented correctly.");
+           errors.push(this.translations.block_structure(i+1));
            log_errors.push({type: "incorrectIndent", line: (i+1)});
          }
          if (code_line.code == model_line.code &&
