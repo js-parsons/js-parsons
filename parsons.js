@@ -3,6 +3,20 @@
    // regexp used for trimming
    var trimRegexp = /^\s*(.*?)\s*$/;
    var ID_PREFIX = "codeline";
+   var formatVariableValue = function(varValue) {
+    var varType = typeof varValue;
+    if (varType === "undefined" || varValue === null) {
+      return "None";
+    } else if (varType === "object" || varValue.tp$name === "str") {
+      return '"' + varValue.v + '"';
+    } else if (varType === "boolean") {
+      return ("" + varValue).replace(/\b[a-z]/g, function(letter) {
+        return letter.toUpperCase();
+      });
+    } else {
+      return varValue;
+    }
+   };
    var translations = {
      fi: {
        order: function() {
@@ -17,8 +31,8 @@
          return "Virhe ohjelman jäsentämisessä/suorituksessa: <span class='errormsg'>" + errormsg + "</span>";
        },
        unittest_assertion: function(expected, actual) {
-        return "Odotettu arvo: <span class='expected'>" + expected + "</span><br>" +
-              "Ohjelmasi antama arvo: <span class='actual'>" + actual + "</span>";
+        return "Odotettu arvo: <span class='expected'>" + formatVariableValue(expected) + "</span><br>" +
+              "Ohjelmasi antama arvo: <span class='actual'>" + formatVariableValue(actual) + "</span>";
        }
      },
      en: {
@@ -33,8 +47,8 @@
          return "Error in parsing/executing your program: <span class='errormsg'>" + errormsg + "</span>";
        },
        unittest_assertion: function(expected, actual) {
-        return "Expected value: <span class='expected'>" + expected + "</span><br>" +
-              "Actual value: <span class='actual'>" + actual + "</span>";
+        return "Expected value: <span class='expected'>" + formatVariableValue(expected) + "</span><br>" +
+              "Actual value: <span class='actual'>" + formatVariableValue(actual) + "</span>";
        }
      }
    };
