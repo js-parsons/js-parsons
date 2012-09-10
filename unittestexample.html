@@ -1,0 +1,70 @@
+<html>
+  <head>
+    <title>unittest parsons</title>
+    <link rel="stylesheet" href="parsons.css"/>
+    <link href="lib/prettify.css" type="text/css" rel="stylesheet" />
+    <script src="lib/prettify.js"></script>
+    <meta charset="utf8"/>
+  </head>
+  <body>
+    <div id="sortableTrash" class="sortable-code"><p>Trash</p></div>
+    <div id="sortable" class="sortable-code"><p>Solution</p></div>
+    <div style="clear:both;"></div>
+        <p>
+            <a href="#" id="newInstanceLink">New instance</a>
+            <a href="#" id="feedbackLink">Get feedback</a>
+            <a href="#" id="previouslyLink">previously</a>
+        </p>
+    <div id="unittest"></div>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/jquery-ui.min.js"></script>
+    <script src="lib/underscore-min.js"></script>
+    <script src="lib/lis.js"></script>
+    <script src="parsons.js"></script>
+    <script src="lib/skulpt.js"></script>
+    <script>
+    var initial = "def maxindex(arg):\n" +
+                  "  ans = 0\n" +
+                  "  for i in range(len(arg)):\n" +
+                  "    if arg[i] > arg[ans]:\n" +
+                  "      ans = i\n" +
+                  "  return ans\n";
+
+    var unittests = [
+      { message: "Calling function <code>maxindex([0, 2, 4])</code>.", code: "maxi = maxindex([0, 2, 4])", variable: "maxi", expected: 2 },
+      { message: "Calling function <code>maxindex([7, 2, 4])</code>.", code: "maxi = maxindex([0, 2, 4])", variable: "maxi", expected: 0 },
+    ];
+       $(document).ready(function(){
+            var parson = new ParsonsWidget({
+                'sortableId': 'sortable',
+                        'trashId': 'sortableTrash',
+                        'unittests': unittests
+            });
+            parson.init(initial);
+                  parson.shuffleLines();
+            $("#newInstanceLink").click(function(event){
+                event.preventDefault();
+                parson.shuffleLines();
+            });
+            $("#feedbackLink").click(function(event){
+                event.preventDefault();
+                var fb = parson.getFeedback();
+                $("#unittest").html("<h2>Feedback from testing your program:</h2>" + fb);
+            });
+            $("#previouslyLink").click(function(event){
+                event.preventDefault();
+                var action = parson.whatWeDidPreviously();
+                if (!action) {
+                  alert("nothing");
+                } else {
+                  var html = parson.getHtmlFromHash(action.output, "prev");
+                  $("#last").html(html);
+                  //var p2 = new ParsonsWidget({'sortableId': 'sortable2',});
+                  //p2.modified_lines = $.extend(true, [], action.output);
+                  //p2.createHtml();
+                }
+            });
+         });
+    </script>
+    </body>
+</html>

@@ -56,12 +56,17 @@ li.correctIndent {
     border-left: 10px solid green;
 }
 
-li.incorrectPosition {
+li.incorrectPosition, .testcase.incorrect {
     background-color: #FFBABA;
     border:1px solid red;
 }
 
-li.correctPosition {
+li.correctPosition, .testcase.correct {
     background-color: #DFF2BF;
     border:1px solid green;
 }
+
+.testcase { padding: 10px; margin-bottom: 10px;}
+.testcase .errormsg { color: red;}
+.testcase .msg { font-weight: bolder;}
+.testcase.incorrect .expected, .testcase.incorrect .actual { color: red; font-weight: bolder; }

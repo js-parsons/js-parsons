@@ -9,20 +9,57 @@
          return "Ohjelma sisältää vääriä palasia tai palasten järjestys on väärä. Ohjelma on mahdollista korjata siirtämällä, poistamalla tai vaihtamalla korostettuja palasia.";},
        lines_missing: function() {
          return "Ohjelmassasi on liian vähän palasia, jotta se toimisi oikein.";},
-       no_matching: function(lineNro) { 
-         return "Korostettu palanen (" + lineNro + ") on sisennetty Pythonin kieliopin vastaisesti."},
-       block_structure: function(lineNro) { 
-         return "Korostettu palanen (" + lineNro + ") on sisennetty väärään koodilohkoon."},
+       no_matching: function(lineNro) {
+         return "Korostettu palanen (" + lineNro + ") on sisennetty Pythonin kieliopin vastaisesti."; },
+       block_structure: function(lineNro) {
+         return "Korostettu palanen (" + lineNro + ") on sisennetty väärään koodilohkoon."; },
+       unittest_error: function(errormsg) {
+         return "Virhe ohjelman jäsentämisessä/suorituksessa: <span class='errormsg'>" + errormsg + "</span>";
+       },
+       unittest_assertion: function(expected, actual) {
+        return "Odotettu arvo: <span class='expected'>" + expected + "</span><br>" +
+              "Ohjelmasi antama arvo: <span class='actual'>" + actual + "</span>";
+       }
      },
      en: {
        order: function() {
          return "Some lines in incorrect position relative to the others.";},
        lines_missing: function() {
          return "Too few lines in your solution.";},
-       no_matching: function(lineNro) { 
-         return "Line " + lineNro + " is not correctly indented. No matching indentation."},
-       block_structure: function(lineNro) { return "Line " + lineNro + " is not indented correctly."},
-     },
+       no_matching: function(lineNro) {
+         return "Line " + lineNro + " is not correctly indented. No matching indentation."; },
+       block_structure: function(lineNro) { return "Line " + lineNro + " is not indented correctly."; },
+       unittest_error: function(errormsg) {
+         return "Error in parsing/executing your program: <span class='errormsg'>" + errormsg + "</span>";
+       },
+       unittest_assertion: function(expected, actual) {
+        return "Expected value: <span class='expected'>" + expected + "</span><br>" +
+              "Actual value: <span class='actual'>" + actual + "</span>";
+       }
+     }
+   };
+   var python_exec = function(code, variables) {
+      var output = "",
+          mainmod,
+          result = {'_output': output, 'variables': {}},
+          varname;
+      Sk.configure( { output: function(str) { output += str; } } );
+      try {
+        mainmod = Sk.importMainWithBody("<stdin>", false, code);
+      } catch (e) {
+        return {"_output": output, "_error": "" + e};
+      }
+      for (var i = 0; i < variables.length; i++) {
+        varname = variables[i];
+        result.variables[varname] = mainmod.tp$getattr(varname);
+      }
+      return result;
+   };
+   var python_indents = [],
+        spaces = "";
+   for (var counter = 0; counter < 20; counter++) {
+    python_indents[counter] = spaces;
+    spaces += "  ";
    }
 
 
@@ -46,7 +83,8 @@
        'max_wrong_lines': 10,
        'trash_label': 'Drag from here',
        'solution_label': 'Construct your solution here',
-       'lang': 'en'
+       'lang': 'en',
+       'unittestId': 'unittest'
      };
      
      this.options = jQuery.extend({}, defaults, options);
@@ -351,14 +389,14 @@
      var lines_to_check = Math.min(student_code.length, this.model_solution.length);
      var errors = [], log_errors = [];
      var incorrectLines = [], lines = [];
-     var id, line;
+     var id, line, i;
      var wrong_order = false;
      
      //remove distractors from lines and add all those to the set of misplaced lines
-     for (var i=0; i<student_code.length; i++) {
+     for (i=0; i<student_code.length; i++) {
        line = this.getLineById(student_code[i].id);
        id = parseInt(line.id.replace(id_prefix, ""), 10);
-       if (line.distractor) {         
+       if (line.distractor) {
          incorrectLines.push(id);
          wrong_order = true;
          $("#" + id_prefix + id).addClass("incorrectPosition");
@@ -394,7 +432,7 @@
      }
      
      if (errors.length === 0) { // check indent if no other errors
-       for (var i = 0; i < lines_to_check; i++) {
+       for (i = 0; i < lines_to_check; i++) {
          var code_line = student_code[i];
          var model_line = this.model_solution[i];
          if (code_line.indent !== model_line.indent &&
@@ -417,18 +455,67 @@
 
      return {errors: errors, log_errors: log_errors};
    };
+  ParsonsWidget.prototype.unittest = function(unittests) {
+    var that = this,
+        feedback = "",
+        log_errors = [];
+    $.each(unittests, function(index, testdata) {
+      var $lines = $("#sortable li");
+      var student_code = that.normalizeIndents(that.getModifiedCode("#ul-sortable"));
+      var executableCode = "";
+      $.each(student_code, function(index, item) {
+        // split codeblocks on br elements
+        var lines = $("#" + item.id).html().split(/<br\s*\/?>/);
+        // go through all the lines
+        for (var i = 0; i < lines.length; i++) {
+          // add indents and get the text for the line (to remove the syntax highlight html elements)
+          executableCode += python_indents[item.indent] + $("<span>" + lines[i] + "</span>").text() + "\n";
+        }
+      });
+      executableCode += testdata.code;
+      var res = python_exec(executableCode, [testdata.variable]);
+      var testcaseFeedback = "",
+          success = true,
+          log_entry = {'code': testdata.code, 'msg': testdata.message};
+      if ("_error" in res) {
+        testcaseFeedback += that.translations.unittest_error(res._error);
+        success = false;
+        log_entry.type = "error";
+        log_entry.errormsg = res._error;
+      } else {
+        testcaseFeedback += that.translations.unittest_assertion(testdata.expected, res.variables[testdata.variable]);
+        log_entry.type = "assertion";
+        log_entry.variable = testdata.variable;
+        log_entry.expected = testdata.expected;
+        log_entry.actual = res.variables[testdata.variable];
+        if (res.variables[testdata.variable] != testdata.expected) { // should we do a strict test??
+          success = false;
+        }
+      }
+      log_entry.success = success;
+      log_errors.push(log_entry);
+      feedback += "<div class='testcase " + (success?"correct":"incorrect") +
+                  "'><span class='msg'>" + testdata.message + "</span><br>" +
+                  testcaseFeedback + "</div>";
+    });
+    return { errors: feedback, "log_errors": log_errors };
+  };
 
    /**
     * @return
     * TODO(petri): Separate UI from here
     */
    ParsonsWidget.prototype.getFeedback = function() {
+    var fb;
      this.feedback_exists = true;
+     if (typeof(this.options.unittests) !== "undefined") { /// unittests are specified
+       fb = this.unittest(this.options.unittests);
+     } else { // "traditional" parson feedback
+      fb = this.colorFeedback(this.options.sortableId, ID_PREFIX);
      
-     var fb = this.colorFeedback(this.options.sortableId, ID_PREFIX);
-     
-     if (this.options.feedback_cb) {
-       feedback_cb(); //TODO(petri): what is needed?
+      if (this.options.feedback_cb) {
+        feedback_cb(); //TODO(petri): what is needed?
+      }
      }
      this.addLogEntry({type: "feedback", errors: fb.log_errors});
      return fb.errors;
