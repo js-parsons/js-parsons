@@ -52,7 +52,8 @@
             $("#feedbackLink").click(function(event){
                 event.preventDefault();
                 var fb = parson.getFeedback();
-                $("#unittest").html("<h2>Feedback from testing your program:</h2>" + fb);
+                $("#unittest").html("<h2>Feedback from testing your program:</h2>" + fb.feedback);
+                if (fb.success) { alert("Good, you solved the assignment!"); }
             });
             $("#previouslyLink").click(function(event){
                 event.preventDefault();

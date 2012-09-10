@@ -458,7 +458,8 @@
   ParsonsWidget.prototype.unittest = function(unittests) {
     var that = this,
         feedback = "",
-        log_errors = [];
+        log_errors = [],
+        all_passed = true;
     $.each(unittests, function(index, testdata) {
       var $lines = $("#sortable li");
       var student_code = that.normalizeIndents(that.getModifiedCode("#ul-sortable"));
@@ -492,13 +493,17 @@
           success = false;
         }
       }
+      all_passed = all_passed && success;
       log_entry.success = success;
       log_errors.push(log_entry);
       feedback += "<div class='testcase " + (success?"correct":"incorrect") +
                   "'><span class='msg'>" + testdata.message + "</span><br>" +
                   testcaseFeedback + "</div>";
     });
-    return { errors: feedback, "log_errors": log_errors };
+    if (all_passed) {
+      $("#ul-" + this.options.sortableId).addClass("correct");
+    }
+    return { errors: feedback, "log_errors": log_errors, success: all_passed };
   };
 
    /**
@@ -509,16 +514,18 @@
     var fb;
      this.feedback_exists = true;
      if (typeof(this.options.unittests) !== "undefined") { /// unittests are specified
-       fb = this.unittest(this.options.unittests);
+      fb = this.unittest(this.options.unittests);
+      this.addLogEntry({type: "feedback", errors: fb.log_errors});
+      return { feedback: fb.errors, success: fb.success };
      } else { // "traditional" parson feedback
       fb = this.colorFeedback(this.options.sortableId, ID_PREFIX);
      
       if (this.options.feedback_cb) {
         feedback_cb(); //TODO(petri): what is needed?
       }
+      this.addLogEntry({type: "feedback", errors: fb.log_errors});
+      return fb.errors;
      }
-     this.addLogEntry({type: "feedback", errors: fb.log_errors});
-     return fb.errors;
    };
 
    ParsonsWidget.prototype.clearFeedback = function() {
