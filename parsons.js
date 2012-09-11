@@ -7,12 +7,16 @@
     var varType = typeof varValue;
     if (varType === "undefined" || varValue === null) {
       return "None";
-    } else if (varType === "object" || varValue.tp$name === "str") {
+    } else if (varType === "string") { // show strings in quotes
+      return '"' + varValue + '"';
+    } else if (varType === "boolean") { // Python booleans with capital first letter
+      return varValue?"True":"False";
+    } else if ($.isArray(varValue)) { // JavaScript arrays
+      return '[' + varValue.join(', ') + ']';
+    } else if (varType === "object" && varValue.tp$name === "str") { // Python strings
       return '"' + varValue.v + '"';
-    } else if (varType === "boolean") {
-      return ("" + varValue).replace(/\b[a-z]/g, function(letter) {
-        return letter.toUpperCase();
-      });
+    } else if (varType === "object" && varValue.tp$name === "list") { // Python lists
+      return '[' + varValue.v.join(', ') + ']';
     } else {
       return varValue;
     }
@@ -31,8 +35,8 @@
          return "Virhe ohjelman jäsentämisessä/suorituksessa: <span class='errormsg'>" + errormsg + "</span>";
        },
        unittest_assertion: function(expected, actual) {
-        return "Odotettu arvo: <span class='expected'>" + formatVariableValue(expected) + "</span><br>" +
-              "Ohjelmasi antama arvo: <span class='actual'>" + formatVariableValue(actual) + "</span>";
+        return "Odotettu arvo: <span class='expected'>" + expected + "</span><br>" +
+              "Ohjelmasi antama arvo: <span class='actual'>" + actual + "</span>";
        }
      },
      en: {
@@ -47,8 +51,8 @@
          return "Error in parsing/executing your program: <span class='errormsg'>" + errormsg + "</span>";
        },
        unittest_assertion: function(expected, actual) {
-        return "Expected value: <span class='expected'>" + formatVariableValue(expected) + "</span><br>" +
-              "Actual value: <span class='actual'>" + formatVariableValue(actual) + "</span>";
+        return "Expected value: <span class='expected'>" + expected + "</span><br>" +
+              "Actual value: <span class='actual'>" + actual + "</span>";
        }
      }
    };
@@ -491,19 +495,23 @@
       var res = python_exec(executableCode, [testdata.variable]);
       var testcaseFeedback = "",
           success = true,
-          log_entry = {'code': testdata.code, 'msg': testdata.message};
+          log_entry = {'code': testdata.code, 'msg': testdata.message},
+          expected_value,
+          actual_value;
       if ("_error" in res) {
         testcaseFeedback += that.translations.unittest_error(res._error);
         success = false;
         log_entry.type = "error";
         log_entry.errormsg = res._error;
       } else {
-        testcaseFeedback += that.translations.unittest_assertion(testdata.expected, res.variables[testdata.variable]);
+        expected_value = formatVariableValue(testdata.expected);
+        actual_value = formatVariableValue(res.variables[testdata.variable]);
+        testcaseFeedback += that.translations.unittest_assertion(expected_value, actual_value);
         log_entry.type = "assertion";
         log_entry.variable = testdata.variable;
-        log_entry.expected = testdata.expected;
-        log_entry.actual = res.variables[testdata.variable];
-        if (res.variables[testdata.variable] != testdata.expected) { // should we do a strict test??
+        log_entry.expected = expected_value;
+        log_entry.actual = actual_value;
+        if (actual_value != expected_value) { // should we do a strict test??
           success = false;
         }
       }
