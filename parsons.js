@@ -34,6 +34,10 @@
        unittest_error: function(errormsg) {
          return "Virhe ohjelman jäsentämisessä/suorituksessa: <span class='errormsg'>" + errormsg + "</span>";
        },
+       unittest_output_assertion: function(expected, actual) {
+        return "Odotettu tulostus: <span class='expected output'>" + expected + "</span>" +
+              "Ohjelmasi tulostus: <span class='actual output'>" + actual + "</span>";
+       },
        unittest_assertion: function(expected, actual) {
         return "Odotettu arvo: <span class='expected'>" + expected + "</span><br>" +
               "Ohjelmasi antama arvo: <span class='actual'>" + actual + "</span>";
@@ -50,6 +54,10 @@
        unittest_error: function(errormsg) {
          return "Error in parsing/executing your program: <span class='errormsg'>" + errormsg + "</span>";
        },
+       unittest_output_assertion: function(expected, actual) {
+        return "Expected output: <span class='expected output'>" + expected + "</span>" +
+              "Output of your program: <span class='actual output'>" + actual + "</span>";
+       },
        unittest_assertion: function(expected, actual) {
         return "Expected value: <span class='expected'>" + expected + "</span><br>" +
               "Actual value: <span class='actual'>" + actual + "</span>";
@@ -59,7 +67,7 @@
    var python_exec = function(code, variables) {
       var output = "",
           mainmod,
-          result = {'_output': output, 'variables': {}},
+          result = {'variables': {}},
           varname;
       Sk.configure( { output: function(str) { output += str; } } );
       try {
@@ -71,6 +79,7 @@
         varname = variables[i];
         result.variables[varname] = mainmod.tp$getattr(varname);
       }
+      result._output = output;
       return result;
    };
    var python_indents = [],
@@ -121,7 +130,7 @@
    //Public methods
    ParsonsWidget.prototype.parseLine = function(spacePrefixedLine) {
      return {
-       code: spacePrefixedLine.replace(trimRegexp, "$1").replace(/\\n/,"\n"),
+       code: spacePrefixedLine.replace(trimRegexp, "$1").replace(/\\n/g,"\n"),
        indent: spacePrefixedLine.length - spacePrefixedLine.replace(/^\s+/,"").length
      };
    };
@@ -504,9 +513,15 @@
         log_entry.type = "error";
         log_entry.errormsg = res._error;
       } else {
-        expected_value = formatVariableValue(testdata.expected);
-        actual_value = formatVariableValue(res.variables[testdata.variable]);
-        testcaseFeedback += that.translations.unittest_assertion(expected_value, actual_value);
+        if (testdata.variable === "_output") { // checking output of the program
+          expected_value = testdata.expected;
+          actual_value = res._output;
+          testcaseFeedback += that.translations.unittest_output_assertion(expected_value, actual_value);
+        } else {
+          expected_value = formatVariableValue(testdata.expected);
+          actual_value = formatVariableValue(res.variables[testdata.variable]);
+          testcaseFeedback += that.translations.unittest_assertion(expected_value, actual_value);
+        }
         log_entry.type = "assertion";
         log_entry.variable = testdata.variable;
         log_entry.expected = expected_value;

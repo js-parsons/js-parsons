@@ -69,4 +69,17 @@ li.correctPosition, .testcase.correct {
 .testcase { padding: 10px; margin-bottom: 10px;}
 .testcase .errormsg { color: red;}
 .testcase .msg { font-weight: bolder;}
-.testcase.incorrect .expected, .testcase.incorrect .actual { color: red; font-weight: bolder; }
+.testcase.incorrect .expected, .testcase.incorrect .actual { 
+    color: red; 
+    font-weight: bolder;
+}
+.testcase .output { 
+    display: block; 
+    white-space: pre; 
+    background-color: #555555;
+    color: white;
+    font-size: 12px;
+    line-height: 15px;
+    margin: 5px;
+    padding: 5px;
+}
