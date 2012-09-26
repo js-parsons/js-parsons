@@ -24,7 +24,7 @@
    var translations = {
      fi: {
        order: function() {
-         return "Ohjelma sisältää vääriä palasia tai palasten järjestys on väärä. Ohjelma on mahdollista korjata siirtämällä, poistamalla tai vaihtamalla korostettuja palasia.";},
+         return "Ohjelma sisältää vääriä palasia tai palasten järjestys on väärä. Tämä on mahdollista korjata siirtämällä, poistamalla tai vaihtamalla korostettuja palasia.";},
        lines_missing: function() {
          return "Ohjelmassasi on liian vähän palasia, jotta se toimisi oikein.";},
        no_matching: function(lineNro) {
@@ -44,6 +44,25 @@
        }
      },
      en: {
+       order: function() {
+         return "Code fragments in your program are wrong, or in wrong order. This can be fixed by moving, removing, or replacing highlighted fragments.";},
+       lines_missing: function() {
+         return "Your program has too few code fragments.";},
+       no_matching: function(lineNro) {
+         return "Based on python syntax, the highlighted fragment (" + lineNro + ") is not correctly indented."; },
+       block_structure: function(lineNro) { return "The highlighted fragment " + lineNro + " belongs to a wrong block (i.e. indentation)."; },
+       unittest_error: function(errormsg) {
+         return "Error in parsing/executing your program: <span class='errormsg'>" + errormsg + "</span>";
+       },
+       unittest_output_assertion: function(expected, actual) {
+        return "Expected output: <span class='expected output'>" + expected + "</span>" +
+              "Output of your program: <span class='actual output'>" + actual + "</span>";
+       },
+       unittest_assertion: function(expected, actual) {
+        return "Expected value: <span class='expected'>" + expected + "</span><br>" +
+              "Actual value: <span class='actual'>" + actual + "</span>";
+       },
+     enold: {
        order: function() {
          return "Some lines in incorrect position relative to the others.";},
        lines_missing: function() {
@@ -193,10 +212,17 @@
      this.model_solution = initial_structures.solution;
      this.extra_lines = initial_structures.distractors;
      this.modified_lines = initial_structures.widgetInitial;
+     this.alternatives = {};
+     var that = this;
 
      $.each(this.modified_lines, function(index, item) {
               item.id = ID_PREFIX + index;
               item.indent = 0;
+              if (that.alternatives.hasOwnProperty(item.code)) {
+                that.alternatives[item.code].push(index);    
+              } else {
+                that.alternatives[item.code] = [index];
+              }
             });
 
    };
@@ -410,6 +436,7 @@
      }
      alert(message);
    };
+
 
    ParsonsWidget.prototype.colorFeedback = function(elemId, id_prefix) {
      var student_code = this.normalizeIndents(this.getModifiedCode("#ul-" + elemId));
