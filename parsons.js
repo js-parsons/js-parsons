@@ -61,7 +61,8 @@
        unittest_assertion: function(expected, actual) {
         return "Expected value: <span class='expected'>" + expected + "</span><br>" +
               "Actual value: <span class='actual'>" + actual + "</span>";
-       },
+       }
+     },
      enold: {
        order: function() {
          return "Some lines in incorrect position relative to the others.";},
