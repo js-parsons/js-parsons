@@ -449,8 +449,8 @@
      
      //remove distractors from lines and add all those to the set of misplaced lines
      for (i=0; i<student_code.length; i++) {
-       line = this.getLineById(student_code[i].id);
-       id = parseInt(line.id.replace(id_prefix, ""), 10);
+       id = parseInt(student_code[i].id.replace(id_prefix, ""), 10);
+       line = this.getLineById(ID_PREFIX + id);
        if (line.distractor) {
          incorrectLines.push(id);
          wrong_order = true;
