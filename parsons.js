@@ -586,7 +586,7 @@
       fb = this.colorFeedback(this.options.sortableId, ID_PREFIX);
      
       if (this.options.feedback_cb) {
-        feedback_cb(); //TODO(petri): what is needed?
+        this.options.feedback_cb(fb); //TODO(petri): what is needed?
       }
       this.addLogEntry({type: "feedback", errors: fb.log_errors});
       return fb.errors;
