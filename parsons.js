@@ -1,4 +1,10 @@
+
 (function() { // wrap in anonymous function to not show some helper variables
+
+   //save globals so they can be noconflicted elsewhere if desired
+   var $pjQ = $;
+   var _p = _;
+
 
    // regexp used for trimming
    var trimRegexp = /^\s*(.*?)\s*$/;
@@ -11,7 +17,7 @@
       return '"' + varValue + '"';
     } else if (varType === "boolean") { // Python booleans with capital first letter
       return varValue?"True":"False";
-    } else if ($.isArray(varValue)) { // JavaScript arrays
+    } else if ($pjQ.isArray(varValue)) { // JavaScript arrays
       return '[' + varValue.join(', ') + ']';
     } else if (varType === "object" && varValue.tp$name === "str") { // Python strings
       return '"' + varValue.v + '"';
@@ -162,7 +168,7 @@
      lineObject,
      errors = [],
      that = this;
-     $.each(lines, function(index, item) {
+     $pjQ.each(lines, function(index, item) {
               if (item.search(/#distractor\s*$/) >= 0) {
                 lineObject = {
                   code: item.replace(/#distractor\s*$/,"").replace(trimRegexp, "$1").replace(/\\n/,"\n"),
@@ -186,7 +192,7 @@
      // Normalize indents and make sure indentation is valid
      var normalized = this.normalizeIndents(indented);
      
-     $.each(normalized, function(index, item) {
+     $pjQ.each(normalized, function(index, item) {
               if (item.indent < 0) {
                 errors.push(this.translations.no_matching(normalized.orig));
               }
@@ -202,9 +208,9 @@
      }
      
      return {
-       solution:  $.extend(true, [], normalized),
-       distractors: $.extend(true, [], selected_distractors),
-       widgetInitial: $.extend(true, [], widgetData),
+       solution:  $pjQ.extend(true, [], normalized),
+       distractors: $pjQ.extend(true, [], selected_distractors),
+       widgetInitial: $pjQ.extend(true, [], widgetData),
        errors: errors};
    };
 
@@ -216,7 +222,7 @@
      this.alternatives = {};
      var that = this;
 
-     $.each(this.modified_lines, function(index, item) {
+     $pjQ.each(this.modified_lines, function(index, item) {
               item.id = ID_PREFIX + index;
               item.indent = 0;
               if (that.alternatives.hasOwnProperty(item.code)) {
@@ -231,7 +237,7 @@
    ParsonsWidget.prototype.getHash = function(searchString) {
      var ids = [];
      var hash = [];
-     ids = $(searchString).sortable('toArray');
+     ids = $pjQ(searchString).sortable('toArray');
      for (var i = 0; i < ids.length; i++) {
        hash.push(ids[i].replace(ID_PREFIX, "") + "_" + this.getLineById(ids[i]).indent);
      }
@@ -247,7 +253,7 @@
      var hash = this.getHash("#ul-" + this.options.sortableId);
      var previously = this.states[hash];
      if (!previously) { return undefined; }
-     var visits = _.filter(this.state_path, function(state) {
+     var visits = _p.filter(this.state_path, function(state) {
                              return state == hash;
                            }).length - 1;
      var i, stepsToLast = 0, s,
@@ -259,7 +265,7 @@
        }
        if (hash === this.state_path[i]) { break; }
      }
-     return $.extend(false, {'visits': visits, stepsToLast: stepsToLast}, previously);
+     return $pjQ.extend(false, {'visits': visits, stepsToLast: stepsToLast}, previously);
    };
    
    ParsonsWidget.prototype.addLogEntry = function(entry) {
@@ -293,7 +299,7 @@
      if (this.state_path[this.state_path.length - 1] !== state) {
        this.state_path.push(state);
        // callback for reacting to actions
-       if ($.isFunction(this.options.action_cb)) {
+       if ($pjQ.isFunction(this.options.action_cb)) {
          this.options.action_cb.call(this, logData);
        }
      }
@@ -371,9 +377,9 @@
      //ids of the the modified code
      var lines_to_return = [],
           that = this;
-     $(search_string).find("li").each(function(index, item) {
-       lines_to_return.push({id: $(item).attr("id"),
-                      indent: parseInt($(item).css("margin-left"), 10)/that.options.x_indent});
+     $pjQ(search_string).find("li").each(function(index, item) {
+       lines_to_return.push({id: $pjQ(item).attr("id"),
+                      indent: parseInt($pjQ(item).css("margin-left"), 10)/that.options.x_indent});
      });
      return lines_to_return;
    };
@@ -432,8 +438,8 @@
     * TODO(petri) refoctor to UI
     */
    ParsonsWidget.prototype.displayError = function(message) {
-     if (this.options.incorrectSound && $.sound) {
-       $.sound.play(this.options.incorrectSound);
+     if (this.options.incorrectSound && $pjQ.sound) {
+       $pjQ.sound.play(this.options.incorrectSound);
      }
      alert(message);
    };
@@ -454,7 +460,7 @@
        if (line.distractor) {
          incorrectLines.push(id);
          wrong_order = true;
-         $("#" + id_prefix + id).addClass("incorrectPosition");
+         $pjQ("#" + id_prefix + id).addClass("incorrectPosition");
        } else {
          lines.push(id);
        }
@@ -462,8 +468,8 @@
 
      var inv = LIS.best_lise_inverse(lines);
 
-     _.each(inv, function(itemId) {
-              $("#" + id_prefix + itemId).addClass("incorrectPosition");
+     _p.each(inv, function(itemId) {
+              $pjQ("#" + id_prefix + itemId).addClass("incorrectPosition");
               incorrectLines.push(itemId);
             });
      if (inv.length > 0 || errors.length > 0) {
@@ -477,11 +483,11 @@
 
      // Always show this feedback
      if (this.model_solution.length < student_code.length) {
-       //$("#ul-" + elemId).addClass("incorrect");
+       //$pjQ("#ul-" + elemId).addClass("incorrect");
        //errors.push("Too many lines in your solution.");
        log_errors.push({type: "tooManyLines", lines: student_code.length});
      } else if (this.model_solution.length > student_code.length){
-       $("#ul-" + elemId).addClass("incorrect");
+       $pjQ("#ul-" + elemId).addClass("incorrect");
        errors.push(this.translations.lines_missing());
        log_errors.push({type: "tooFewLines", lines: student_code.length});
      }
@@ -492,20 +498,20 @@
          var model_line = this.model_solution[i];
          if (code_line.indent !== model_line.indent &&
              ((!this.options.first_error_only) || errors.length === 0)) {
-           $("#" + code_line.id).addClass("incorrectIndent");
+           $pjQ("#" + code_line.id).addClass("incorrectIndent");
            errors.push(this.translations.block_structure(i+1));
            log_errors.push({type: "incorrectIndent", line: (i+1)});
          }
          if (code_line.code == model_line.code &&
              code_line.indent == model_line.indent &&
              errors.length === 0) {
-           $("#" + code_line.id).addClass("correctPosition");
+           $pjQ("#" + code_line.id).addClass("correctPosition");
          }
        }
      }
 
      if (errors.length === 0) {
-       $("#ul-" + elemId).addClass("correct");
+       $pjQ("#ul-" + elemId).addClass("correct");
      }
 
      return {errors: errors, log_errors: log_errors};
@@ -515,17 +521,17 @@
         feedback = "",
         log_errors = [],
         all_passed = true;
-    $.each(unittests, function(index, testdata) {
-      var $lines = $("#sortable li");
+    $pjQ.each(unittests, function(index, testdata) {
+      var $pjQlines = $pjQ("#sortable li");
       var student_code = that.normalizeIndents(that.getModifiedCode("#ul-sortable"));
       var executableCode = "";
-      $.each(student_code, function(index, item) {
+      $pjQ.each(student_code, function(index, item) {
         // split codeblocks on br elements
-        var lines = $("#" + item.id).html().split(/<br\s*\/?>/);
+        var lines = $pjQ("#" + item.id).html().split(/<br\s*\/?>/);
         // go through all the lines
         for (var i = 0; i < lines.length; i++) {
           // add indents and get the text for the line (to remove the syntax highlight html elements)
-          executableCode += python_indents[item.indent] + $("<span>" + lines[i] + "</span>").text() + "\n";
+          executableCode += python_indents[item.indent] + $pjQ("<span>" + lines[i] + "</span>").text() + "\n";
         }
       });
       executableCode += testdata.code;
@@ -566,7 +572,7 @@
                   testcaseFeedback + "</div>";
     });
     if (all_passed) {
-      $("#ul-" + this.options.sortableId).addClass("correct");
+      $pjQ("#ul-" + this.options.sortableId).addClass("correct");
     }
     return { errors: feedback, "log_errors": log_errors, success: all_passed };
   };
@@ -595,9 +601,9 @@
 
    ParsonsWidget.prototype.clearFeedback = function() {
      if (this.feedback_exists) {
-       $("#ul-" + this.options.sortableId).removeClass("incorrect correct");
-       var li_elements = $("#ul-" + this.options.sortableId + " li");
-       $.each(this.FEEDBACK_STYLES, function(index, value) {
+       $pjQ("#ul-" + this.options.sortableId).removeClass("incorrect correct");
+       var li_elements = $pjQ("#ul-" + this.options.sortableId + " li");
+       $pjQ.each(this.FEEDBACK_STYLES, function(index, value) {
                 li_elements.removeClass(value);
               });
      }
@@ -664,25 +670,25 @@
      if (this.options.trashId) {
        var html = (this.options.trash_label?'<p>'+this.options.trash_label+'</p>':'') +
          '<ul id="ul-' + this.options.trashId + '">'+codelines.join('')+'</ul>';
-       $("#" + this.options.trashId).html(html);
+       $pjQ("#" + this.options.trashId).html(html);
        html = (this.options.solution_label?'<p>'+this.options.solution_label+'</p>':'') +
          '<ul id="ul-' + this.options.sortableId + '"></ul>';
-       $("#" + this.options.sortableId).html(html);
+       $pjQ("#" + this.options.sortableId).html(html);
      } else {
-       var d = $("#" + this.options.sortableId);
+       var d = $pjQ("#" + this.options.sortableId);
        var h = '<ul id="ul-' + this.options.sortableId + '">'+codelines.join('')+'</ul>';
-       $("#" + this.options.sortableId).html('<ul id="ul-' + this.options.sortableId + '">'+codelines.join('')+'</ul>');
+       $pjQ("#" + this.options.sortableId).html('<ul id="ul-' + this.options.sortableId + '">'+codelines.join('')+'</ul>');
      }
 
      if (window.prettyPrint && (typeof(this.options.prettyPrint) === "undefined" || this.options.prettyPrint)) {
        prettyPrint();
      }
 
-     var sortable = $("#ul-" + this.options.sortableId).sortable(
+     var sortable = $pjQ("#ul-" + this.options.sortableId).sortable(
        {
          start : function() { that.clearFeedback(); },
          stop : function(event, ui) {
-           if ($(event.target)[0] != ui.item.parent()[0]) {
+           if ($pjQ(event.target)[0] != ui.item.parent()[0]) {
              return;
            }
            var ind = that.updateIndent(ui.position.left - ui.item.parent().offset().left,
@@ -700,7 +706,7 @@
        });
      sortable.addClass("output");
      if (this.options.trashId) {
-       var trash = $("#ul-" + this.options.trashId).sortable(
+       var trash = $pjQ("#ul-" + this.options.trashId).sortable(
          {
            connectWith: sortable,
            start: function() { that.clearFeedback(); },
@@ -710,7 +716,7 @@
              that.addLogEntry({type: "removeOutput", target: ui.item[0].id}, true);
            },
            stop: function(event, ui) {
-             if ($(event.target)[0] != ui.item.parent()[0]) {
+             if ($pjQ(event.target)[0] != ui.item.parent()[0]) {
                // line moved to output and logged there
                return;
              }
