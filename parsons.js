@@ -2,7 +2,6 @@
 
    // regexp used for trimming
    var trimRegexp = /^\s*(.*?)\s*$/;
-   var ID_PREFIX = "codeline";
    var formatVariableValue = function(varValue) {
     var varType = typeof varValue;
     if (varType === "undefined" || varValue === null) {
@@ -136,6 +135,7 @@
      
      this.options = jQuery.extend({}, defaults, options);
      this.feedback_exists = false;
+     this.id_prefix = options['sortableId'] + 'codeline';
      if (translations.hasOwnProperty(this.options.lang)) {
        this.translations = translations[this.options.lang];
      } else {
@@ -217,7 +217,7 @@
      var that = this;
 
      $.each(this.modified_lines, function(index, item) {
-              item.id = ID_PREFIX + index;
+              item.id = that.id_prefix + index;
               item.indent = 0;
               if (that.alternatives.hasOwnProperty(item.code)) {
                 that.alternatives[item.code].push(index);    
@@ -233,7 +233,7 @@
      var hash = [];
      ids = $(searchString).sortable('toArray');
      for (var i = 0; i < ids.length; i++) {
-       hash.push(ids[i].replace(ID_PREFIX, "") + "_" + this.getLineById(ids[i]).indent);
+       hash.push(ids[i].replace(this.id_prefix, "") + "_" + this.getLineById(ids[i]).indent);
      }
      //prefix with something to handle empty output situations
      if (hash.length === 0) {
@@ -275,7 +275,7 @@
      }
 
      if (entry.target) {
-       entry.target = entry.target.replace(ID_PREFIX, "");
+       entry.target = entry.target.replace(this.id_prefix, "");
      }
 
      state = logData.output;
@@ -381,12 +381,12 @@
    ParsonsWidget.prototype.getHtml = function(lines, id_prefix) {
      var codelines = [];
      if (!id_prefix) {
-       id_prefix = ID_PREFIX;
+       id_prefix = this.id_prefix;
      }
 
      for (var i=0; i<lines.length; i++) {
        codelines.push(
-         '<li id="' + id_prefix + lines[i].id.replace(ID_PREFIX, "") +
+         '<li id="' + id_prefix + lines[i].id.replace(this.id_prefix, "") +
            '" style="margin-left: ' + lines[i].indent * this.options.x_indent +
            'px" class="prettyprint lang-py">' +
            lines[i].code + '<\/li>');
@@ -397,7 +397,7 @@
    
    ParsonsWidget.prototype.getHtmlFromHash = function(hash, id_prefix) {
      if (!id_prefix) {
-       id_prefix = ID_PREFIX;
+       id_prefix = this.id_prefix;
      }
      var lines = this.getLinesFromHash(hash);
      return this.getHtml(lines, id_prefix);
@@ -420,9 +420,9 @@
        
        lines.push(
          {
-           code: this.getLineById(ID_PREFIX + lineValues[0]).code,
+           code: this.getLineById(this.id_prefix + lineValues[0]).code,
            indent: lineValues[1],
-           id: this.getLineById(ID_PREFIX + lineValues[0]).id
+           id: this.getLineById(this.id_prefix + lineValues[0]).id
          });
      }
      return lines;
@@ -439,7 +439,7 @@
    };
 
 
-   ParsonsWidget.prototype.colorFeedback = function(elemId, id_prefix) {
+   ParsonsWidget.prototype.colorFeedback = function(elemId) {
      var student_code = this.normalizeIndents(this.getModifiedCode("#ul-" + elemId));
      var lines_to_check = Math.min(student_code.length, this.model_solution.length);
      var errors = [], log_errors = [];
@@ -449,12 +449,12 @@
      
      //remove distractors from lines and add all those to the set of misplaced lines
      for (i=0; i<student_code.length; i++) {
-       id = parseInt(student_code[i].id.replace(id_prefix, ""), 10);
-       line = this.getLineById(ID_PREFIX + id);
+       id = parseInt(student_code[i].id.replace(this.id_prefix, ""), 10);
+       line = this.getLineById(this.id_prefix + id);
        if (line.distractor) {
          incorrectLines.push(id);
          wrong_order = true;
-         $("#" + id_prefix + id).addClass("incorrectPosition");
+         $("#" + this.id_prefix + id).addClass("incorrectPosition");
        } else {
          lines.push(id);
        }
@@ -463,7 +463,7 @@
      var inv = LIS.best_lise_inverse(lines);
 
      _.each(inv, function(itemId) {
-              $("#" + id_prefix + itemId).addClass("incorrectPosition");
+              $("#" + this.id_prefix + itemId).addClass("incorrectPosition");
               incorrectLines.push(itemId);
             });
      if (inv.length > 0 || errors.length > 0) {
@@ -583,7 +583,7 @@
       this.addLogEntry({type: "feedback", errors: fb.log_errors});
       return { feedback: fb.errors, success: fb.success };
      } else { // "traditional" parson feedback
-      fb = this.colorFeedback(this.options.sortableId, ID_PREFIX);
+      fb = this.colorFeedback(this.options.sortableId);
      
       if (this.options.feedback_cb) {
         this.options.feedback_cb(fb); //TODO(petri): what is needed?
@@ -645,7 +645,7 @@
      
      var that = this;
      for (var i=0; i<this.modified_lines.length; i++) {
-       codelines.push('<li id="' + ID_PREFIX + i + '" class="prettyprint lang-py">' + this.modified_lines[i].code + '<\/li>');
+       codelines.push('<li id="' + this.id_prefix + i + '" class="prettyprint lang-py">' + this.modified_lines[i].code + '<\/li>');
      }
      
      //randomize is a permutation array, i.e. array with index values where [1, 2, ..., n] implies nothing is permutated
