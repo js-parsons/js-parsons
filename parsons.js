@@ -224,7 +224,7 @@
               } else {
                 that.alternatives[item.code] = [index];
               }
-            });
+     });
 
    };
 
@@ -304,10 +304,13 @@
     * leftDiff horizontal difference from (before and after drag) in px
     ***/
    ParsonsWidget.prototype.updateIndent = function(leftDiff, id) {
+       console.log(leftDiff);
      var code_line = this.getLineById(id);
      var new_indent = code_line.indent + Math.floor(leftDiff / this.options.x_indent);
      new_indent = Math.max(0, new_indent);
      code_line.indent = new_indent;
+     console.log(new_indent);
+
      return new_indent;
    };
 
@@ -378,32 +381,7 @@
      return lines_to_return;
    };
 
-   ParsonsWidget.prototype.getHtml = function(lines, id_prefix) {
-     var codelines = [];
-     if (!id_prefix) {
-       id_prefix = this.id_prefix;
-     }
-
-     for (var i=0; i<lines.length; i++) {
-       codelines.push(
-         '<li id="' + id_prefix + lines[i].id.replace(this.id_prefix, "") +
-           '" style="margin-left: ' + lines[i].indent * this.options.x_indent +
-           'px" class="prettyprint lang-py">' +
-           lines[i].code + '<\/li>');
-     }
-     return ('<ul class="ui-sortable" id="ul-' + id_prefix + '">'+codelines.join('')+'</ul>');
-   };
-
-   
-   ParsonsWidget.prototype.getHtmlFromHash = function(hash, id_prefix) {
-     if (!id_prefix) {
-       id_prefix = this.id_prefix;
-     }
-     var lines = this.getLinesFromHash(hash);
-     return this.getHtml(lines, id_prefix);
-   };
-
-   ParsonsWidget.prototype.getLinesFromHash = function(hash) {
+   ParsonsWidget.prototype.hashToIDList = function(hash) {
      var lines = [];
      var lineValues;
      var lineObject;
@@ -415,18 +393,35 @@
        h = hash.split("-");
      }
      
+     var ids = []
      for (var i = 0; i < h.length; i++) {
        lineValues = h[i].split("_");
-       
-       lines.push(
-         {
-           code: this.getLineById(this.id_prefix + lineValues[0]).code,
-           indent: lineValues[1],
-           id: this.getLineById(this.id_prefix + lineValues[0]).id
-         });
+       ids.push(this.modified_lines[lineValues[0]].id)
      }
-     return lines;
+     return ids;
    };
+
+   ParsonsWidget.prototype.updateIndentsFromHash = function(hash) {
+     var lines = [];
+     var lineValues;
+     var lineObject;
+     var h;
+
+     if (hash === "-") {
+       h = [];
+     } else {
+       h = hash.split("-");
+     }
+     
+     var ids = []
+     for (var i = 0; i < h.length; i++) {
+         lineValues = h[i].split("_");
+         this.modified_lines[lineValues[0]].indent = Number(lineValues[1]);
+         this.updateHTMLIndent(this.modified_lines[lineValues[0]].id);
+     }
+     return ids;
+   };
+
 
    /**
     * TODO(petri) refoctor to UI
@@ -461,9 +456,9 @@
      }
 
      var inv = LIS.best_lise_inverse(lines);
-
+     var that = this;
      _.each(inv, function(itemId) {
-              $("#" + this.id_prefix + itemId).addClass("incorrectPosition");
+              $("#" + that.id_prefix + itemId).addClass("incorrectPosition");
               incorrectLines.push(itemId);
             });
      if (inv.length > 0 || errors.length > 0) {
@@ -622,62 +617,62 @@
      return permutation;
    };
 
-   ParsonsWidget.prototype.getFixedPermutation = function(n) {
-     var permutation = [];
-     var i;
-     for (i = 0; i < n; i++) {
-       permutation.push(i);
-     }
-
-     return permutation;
-   };
-
 
    ParsonsWidget.prototype.shuffleLines = function() {
-     this.createHtml(this.getRandomPermutation);
+       var permutation = this.getRandomPermutation(this.modified_lines.length);
+       var idlist = []
+       for(i in permutation) {
+           idlist.push(this.modified_lines[permutation[i]].id)
+       }
+       this.createHTMLFromLists([],idlist);
    };
 
+   ParsonsWidget.prototype.createHTMLFromHashes = function(solutionHash, trashHash) {
+       var solution = this.hashToIDList(solutionHash);
+       var trash = this.hashToIDList(trashHash);
+       this.createHTMLFromLists(solution,trash);
+       this.updateIndentsFromHash(solutionHash);
+   };
+
+    ParsonsWidget.prototype.updateHTMLIndent = function(codelineID) {
+        var line = this.getLineById(codelineID);
+        $('#' + codelineID).css("margin-left", this.options.x_indent * line.indent + "px");
+    }
+
+
+    ParsonsWidget.prototype.codeLineToHTML = function(codeline) {
+        return '<li id="' + codeline.id + '" class="prettyprint lang-py">' + codeline.code + '<\/li>';
+    }
+
+    ParsonsWidget.prototype.codeLinesToHTML = function(codelineIDs, destinationID) {
+        var lineHTML = [];
+        for(id in codelineIDs) {
+            var line = this.getLineById(codelineIDs[id]);
+            lineHTML.push(this.codeLineToHTML(line));
+        }
+        return '<ul id="ul-' + destinationID + '">'+lineHTML.join('')+'</ul>';
+    }
+
    /** modifies the DOM by inserting exercise elements into it */
-   ParsonsWidget.prototype.createHtml = function(randomizeCallback) {
-     // TODO(petri): needs more refactoring
-     var codelines = [];
-     var initial_state = []; //used only for logging
-     
-     var that = this;
-     for (var i=0; i<this.modified_lines.length; i++) {
-       codelines.push('<li id="' + this.id_prefix + i + '" class="prettyprint lang-py">' + this.modified_lines[i].code + '<\/li>');
-     }
-     
-     //randomize is a permutation array, i.e. array with index values where [1, 2, ..., n] implies nothing is permutated
-     if (randomizeCallback) {
-       var permutation = randomizeCallback(codelines.length);
-       var randomized_lines = [];
-       for (i = 0; i < codelines.length; i++) {
-         randomized_lines[i] = codelines[permutation[i]];
-         initial_state[i] = this.modified_lines[permutation[i]];
-       }
-       codelines = randomized_lines;
-     } else {
-       initial_state = this.modified_lines;
-     }
+   ParsonsWidget.prototype.createHTMLFromLists = function(solutionIDs, trashIDs) {
      
      if (this.options.trashId) {
        var html = (this.options.trash_label?'<p>'+this.options.trash_label+'</p>':'') +
-         '<ul id="ul-' + this.options.trashId + '">'+codelines.join('')+'</ul>';
+         this.codeLinesToHTML(trashIDs, this.options.trashId);
        $("#" + this.options.trashId).html(html);
        html = (this.options.solution_label?'<p>'+this.options.solution_label+'</p>':'') +
-         '<ul id="ul-' + this.options.sortableId + '"></ul>';
+         this.codeLinesToHTML(solutionIDs, this.options.sortableId);
        $("#" + this.options.sortableId).html(html);
      } else {
-       var d = $("#" + this.options.sortableId);
-       var h = '<ul id="ul-' + this.options.sortableId + '">'+codelines.join('')+'</ul>';
-       $("#" + this.options.sortableId).html('<ul id="ul-' + this.options.sortableId + '">'+codelines.join('')+'</ul>');
+       html = this.codeLinesToHTML(solutionIDs, this.options.sortableId);
+       $("#" + this.options.sortableId).html(html);
      }
 
      if (window.prettyPrint && (typeof(this.options.prettyPrint) === "undefined" || this.options.prettyPrint)) {
        prettyPrint();
      }
 
+     var that = this;
      var sortable = $("#ul-" + this.options.sortableId).sortable(
        {
          start : function() { that.clearFeedback(); },
@@ -685,15 +680,15 @@
            if ($(event.target)[0] != ui.item.parent()[0]) {
              return;
            }
-           var ind = that.updateIndent(ui.position.left - ui.item.parent().offset().left,
+           that.updateIndent(ui.position.left - ui.item.parent().offset().left,
                                        ui.item[0].id);
-           ui.item.css("margin-left", that.options.x_indent * ind + "px");
+           that.updateHTMLIndent(ui.item[0].id);
            that.addLogEntry({type: "moveOutput", target: ui.item[0].id}, true);
          },
          receive : function(event, ui) {
            var ind = that.updateIndent(ui.position.left - ui.item.parent().offset().left,
                                        ui.item[0].id);
-           ui.item.css("margin-left", that.options.x_indent * ind + "px");
+           that.updateHTMLIndent(ui.item[0].id);
            that.addLogEntry({type: "addOutput", target: ui.item[0].id}, true);
          },
          grid : [that.options.x_indent, 1 ]
@@ -706,7 +701,7 @@
            start: function() { that.clearFeedback(); },
            receive: function(event, ui) {
              that.getLineById(ui.item[0].id).indent = 0;
-             ui.item.css("margin-left", "0");
+             that.updateHTMLIndent(ui.item[0].id);
              that.addLogEntry({type: "removeOutput", target: ui.item[0].id}, true);
            },
            stop: function(event, ui) {
@@ -721,6 +716,7 @@
      }
      this.addLogEntry({type: 'init', time: new Date(), bindings: this.modified_lines});
    };
+
 
      window['ParsonsWidget'] = ParsonsWidget;
  }
