@@ -248,7 +248,9 @@
    }
 
    ParsonsWidget.prototype.trashHash = function() {
+
        return this.getHash("#ul-" + this.options.trashId);
+
    }
 
    ParsonsWidget.prototype.whatWeDidPreviously = function() {
