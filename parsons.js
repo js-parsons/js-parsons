@@ -319,7 +319,6 @@
      var new_indent = code_line.indent + Math.floor(leftDiff / this.options.x_indent);
      new_indent = Math.max(0, new_indent);
      code_line.indent = new_indent;
-     console.log(new_indent);
 
      return new_indent;
    };
