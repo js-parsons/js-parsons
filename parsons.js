@@ -243,8 +243,18 @@
      }
    };
    
+   ParsonsWidget.prototype.solutionHash = function() {
+       return this.getHash("#ul-" + this.options.sortableId);
+   }
+
+   ParsonsWidget.prototype.trashHash = function() {
+
+       return this.getHash("#ul-" + this.options.trashId);
+
+   }
+
    ParsonsWidget.prototype.whatWeDidPreviously = function() {
-     var hash = this.getHash("#ul-" + this.options.sortableId);
+     var hash = this.solutionHash();
      var previously = this.states[hash];
      if (!previously) { return undefined; }
      var visits = _.filter(this.state_path, function(state) {
@@ -266,12 +276,12 @@
      var state, previousState;
      var logData = {
        time: new Date(),
-       output: this.getHash("#ul-" + this.options.sortableId),
+       output: this.solutionHash(),
        type: "action"
      };
      
      if (this.options.trashId) {
-       logData.input = this.getHash("#ul-" + this.options.trashId);
+       logData.input = this.trashHash();
      }
 
      if (entry.target) {
@@ -304,12 +314,11 @@
     * leftDiff horizontal difference from (before and after drag) in px
     ***/
    ParsonsWidget.prototype.updateIndent = function(leftDiff, id) {
-       console.log(leftDiff);
+
      var code_line = this.getLineById(id);
      var new_indent = code_line.indent + Math.floor(leftDiff / this.options.x_indent);
      new_indent = Math.max(0, new_indent);
      code_line.indent = new_indent;
-     console.log(new_indent);
 
      return new_indent;
    };
@@ -387,7 +396,7 @@
      var lineObject;
      var h;
 
-     if (hash === "-") {
+     if (hash === "-" || hash === "" || hash === null) {
        h = [];
      } else {
        h = hash.split("-");
@@ -407,7 +416,7 @@
      var lineObject;
      var h;
 
-     if (hash === "-") {
+     if (hash === "-" || hash === "" || hash === null) {
        h = [];
      } else {
        h = hash.split("-");
@@ -621,10 +630,14 @@
    ParsonsWidget.prototype.shuffleLines = function() {
        var permutation = this.getRandomPermutation(this.modified_lines.length);
        var idlist = []
-       for(i in permutation) {
+       for(var i in permutation) {
            idlist.push(this.modified_lines[permutation[i]].id)
        }
-       this.createHTMLFromLists([],idlist);
+       if (this.options.trashId) {
+           this.createHTMLFromLists([],idlist);
+       } else {
+           this.createHTMLFromLists(idlist,[]);
+       }
    };
 
    ParsonsWidget.prototype.createHTMLFromHashes = function(solutionHash, trashHash) {
@@ -646,7 +659,7 @@
 
     ParsonsWidget.prototype.codeLinesToHTML = function(codelineIDs, destinationID) {
         var lineHTML = [];
-        for(id in codelineIDs) {
+        for(var id in codelineIDs) {
             var line = this.getLineById(codelineIDs[id]);
             lineHTML.push(this.codeLineToHTML(line));
         }
