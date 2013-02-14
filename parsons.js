@@ -220,7 +220,7 @@
               item.id = that.id_prefix + index;
               item.indent = 0;
               if (that.alternatives.hasOwnProperty(item.code)) {
-                that.alternatives[item.code].push(index);    
+                that.alternatives[item.code].push(index);
               } else {
                 that.alternatives[item.code] = [index];
               }
@@ -245,13 +245,11 @@
    
    ParsonsWidget.prototype.solutionHash = function() {
        return this.getHash("#ul-" + this.options.sortableId);
-   }
+   };
 
    ParsonsWidget.prototype.trashHash = function() {
-
        return this.getHash("#ul-" + this.options.trashId);
-
-   }
+   };
 
    ParsonsWidget.prototype.whatWeDidPreviously = function() {
      var hash = this.solutionHash();
@@ -402,10 +400,10 @@
        h = hash.split("-");
      }
      
-     var ids = []
+     var ids = [];
      for (var i = 0; i < h.length; i++) {
        lineValues = h[i].split("_");
-       ids.push(this.modified_lines[lineValues[0]].id)
+       ids.push(this.modified_lines[lineValues[0]].id);
      }
      return ids;
    };
@@ -422,7 +420,7 @@
        h = hash.split("-");
      }
      
-     var ids = []
+     var ids = [];
      for (var i = 0; i < h.length; i++) {
          lineValues = h[i].split("_");
          this.modified_lines[lineValues[0]].indent = Number(lineValues[1]);
@@ -629,9 +627,9 @@
 
    ParsonsWidget.prototype.shuffleLines = function() {
        var permutation = this.getRandomPermutation(this.modified_lines.length);
-       var idlist = []
+       var idlist = [];
        for(var i in permutation) {
-           idlist.push(this.modified_lines[permutation[i]].id)
+           idlist.push(this.modified_lines[permutation[i]].id);
        }
        if (this.options.trashId) {
            this.createHTMLFromLists([],idlist);
@@ -650,12 +648,12 @@
     ParsonsWidget.prototype.updateHTMLIndent = function(codelineID) {
         var line = this.getLineById(codelineID);
         $('#' + codelineID).css("margin-left", this.options.x_indent * line.indent + "px");
-    }
+    };
 
 
     ParsonsWidget.prototype.codeLineToHTML = function(codeline) {
         return '<li id="' + codeline.id + '" class="prettyprint lang-py">' + codeline.code + '<\/li>';
-    }
+    };
 
     ParsonsWidget.prototype.codeLinesToHTML = function(codelineIDs, destinationID) {
         var lineHTML = [];
@@ -664,13 +662,13 @@
             lineHTML.push(this.codeLineToHTML(line));
         }
         return '<ul id="ul-' + destinationID + '">'+lineHTML.join('')+'</ul>';
-    }
+    };
 
    /** modifies the DOM by inserting exercise elements into it */
    ParsonsWidget.prototype.createHTMLFromLists = function(solutionIDs, trashIDs) {
-     
+     var html;
      if (this.options.trashId) {
-       var html = (this.options.trash_label?'<p>'+this.options.trash_label+'</p>':'') +
+       html = (this.options.trash_label?'<p>'+this.options.trash_label+'</p>':'') +
          this.codeLinesToHTML(trashIDs, this.options.trashId);
        $("#" + this.options.trashId).html(html);
        html = (this.options.solution_label?'<p>'+this.options.solution_label+'</p>':'') +
