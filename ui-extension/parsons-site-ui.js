@@ -331,7 +331,7 @@
 
       if (PARSONS_SETTINGS.submit_url) {
         var post_data = $.extend({'submission': JSON.stringify({'actions': parson.user_actions }),
-                                  'feedback': $.isArray(feedback)?feedback.length:(feedback.success?0:1)},
+                                  'correct': $.isArray(feedback)?feedback.length:(feedback.success?0:1)},
                                 PARSONS_SETTINGS.submit_data);
         $.post(PARSONS_SETTINGS.submit_url, post_data, function(data, textStatus, jqXhr) {
           callbackHandler(data, textStatus, jqXhr);
