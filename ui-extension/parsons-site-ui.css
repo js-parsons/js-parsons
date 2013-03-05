@@ -297,7 +297,9 @@ li.changed {
 #feedbackDialog p {
   white-space: pre-line;
 }
-
+#prevFeedback {
+  float: none;
+}
 /*@media all and (max-width: 320px) and (orientation: portrait){*/
 @media all and (orientation: portrait) {
   #sortable { width: 100%; margin-bottom: 8px; margin-right: 0;}
@@ -321,33 +323,6 @@ li.changed {
   .tabRight { height: 10px; right: -94px; line-height: 0.5em; top: 35px; }
   .tabLeft { height: 10px; line-height: 0.8em; left: -55px; top: 35px; font-size: 0.65em;}
 }
-
-/** Style the instructions shown on first use */
-.wtwui-tip {
-  width: 44% !important;
-}
-.wtwui-tip.parsonRightTip {
-  right: 1% !important;
-  left: auto !important;
-}
-.wtwui-tip.parsonLeftTip {
-  right: auto !important;
-  left: 1% !important;
-}
-.wtwui-tip .content {
-  border: 2px solid orange;
-}
-.wtwui-tip .tip.south.west {
-  right: 2%;
-}
-.wtwui-tip .tip.south.east {
-  left: 2%;
-}
-.wtwui-tip .tip {
-  background-color: orange;
-  border: 1px solid orange;
-}
-/** End styling of the instructions **/
 
 /** Re-style the jQueryUI dialogs */
 .downBelow {

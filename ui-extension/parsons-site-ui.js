@@ -125,8 +125,11 @@
     if (!RevisitFeedback.available() || RevisitFeedback.label() !== "Hint") {
       var html = "<p>This is the feedback you were shown when you requested it the last time.</p>" +
                  "<div class='sortable-code' id='prevFeedback'></div>";
+      if ('feedback' in previousFeedbackState.feedback) {
+        html += "<h2 style='clear:both;'>Test Results</h2>" + previousFeedbackState.feedback.feedback;
+      }
       RevisitFeedback.html(html).label("Last Feedback").available(true);
-      createParsonFeedbackForElement("prevFeedback", previousFeedbackState);
+      createParsonFeedbackForElement("prevFeedback", previousFeedbackState.state);
     }
   };
   // callback function called when user action is done on codelines
@@ -203,22 +206,29 @@
 
   // default feedback callback handler
   var feedbackHandler = function(feedback) {
-    console.log("feedbackHandler", feedback);
-    // no feedback (correctly solved) but collection has more exercises
-    if (feedback.length === 0 && $.isFunction(PARSONS_SETTINGS.next)) {
+    var isCorrect = ($.isArray(feedback) && feedback.length === 0) ||
+                    ('feedback' in feedback && feedback.success);
+
+    // correctly solved but collection has more exercises
+    if (isCorrect && $.isFunction(PARSONS_SETTINGS.next)) {
       $("#ul-sortable").sortable("destroy");
       $("#ul-sortableTrash").sortable("destroy");
       showDialog("Good Job!", "Click OK to go to the next question.", function() {
         PARSONS_SETTINGS.next();
       });
-    } else if (feedback.length === 0) { // no feedback and last question
+    } else if (isCorrect) { // correct and last question
       showDialog("Good Job!", "That was the last question. Click OK to go back to main page.", function() {
         window.location = "./index.html";
       });
     } else { // not correct, show feedback
       var now = new Date(),
           penaltyTime = 0,
-          feedbackText = feedback.join('\n');
+          feedbackText;
+      if ($.isArray(feedback)) { // line-based feedback
+        feedbackText = feedback.join('\n');
+      } else if ('feedback' in feedback) { // execution based feedback
+        feedbackText = "Some tests failed for your solution. See the Last Feedback tab for details.";
+      }
       if (feedbackTimeHistory.length > 1) { // 1st and 2nd feedback can't be too fast
         // we'll go through all the times in the feedback time history
         for (var i = 0; i < feedbackTimeHistory.length; i++) {
@@ -304,7 +314,7 @@
     // initialize UI
     AssignmentTab.init();
     // update, clear, and position the previously visited feedback tab
-    RevisitFeedback.html("").available(false);
+    RevisitFeedback.init().html("").available(false);
     previousFeedbackState = undefined;
 
     // add modality panel
@@ -325,13 +335,16 @@
               feedbackHandler(feedback);
             }
           };
-      previousFeedbackState = parson.user_actions[parson.user_actions.length - 1].output;
-      setLastFeedback(); // update the Last feedback tab
+      previousFeedbackState = {
+        state: parson.user_actions[parson.user_actions.length - 1].output,
+        feedback: feedback
+      };
+      setLastFeedback(feedback); // update the Last feedback tab
 
 
       if (PARSONS_SETTINGS.submit_url) {
         var post_data = $.extend({'submission': JSON.stringify({'actions': parson.user_actions }),
-                                  'correct': $.isArray(feedback)?feedback.length:(feedback.success?0:1)},
+                                  'feedback': $.isArray(feedback)?feedback.length:(feedback.success?0:1)},
                                 PARSONS_SETTINGS.submit_data);
         $.post(PARSONS_SETTINGS.submit_url, post_data, function(data, textStatus, jqXhr) {
           callbackHandler(data, textStatus, jqXhr);
