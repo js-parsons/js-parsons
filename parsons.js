@@ -108,6 +108,50 @@
     spaces += "  ";
    }
 
+   var defaultToggleTypeHandlers = {
+      boolean: ["True", "False"],
+      compop: ["<", ">", "<=", ">=", "==", "!="],
+      mathop: ["+", "-", "*", "/"],
+      boolop: ["and", "or"],
+      range: function($item) {
+         var min = parseFloat($item.data("min") || "0", 10),
+             max = parseFloat($item.data("max") || "10", 10),
+             step = parseFloat($item.data("step") || "1", 10),
+             opts = [],
+             curr = min;
+         while (curr <= max) {
+            opts.push("" + curr);
+            curr += step;
+         }
+         return opts;
+      }
+   };
+   var addToggleableElements = function(widget) {
+      // toggleable elements are only enabled for unit tests
+      if (!widget.options.unittests) { return; }
+      var handlers = $.extend(defaultToggleTypeHandlers, widget.options.toggleTypeHandlers),
+          context = $("#" + widget.options.sortableId + ", #" + widget.options.trashId);
+      $(".jsparson-toggle", context).each(function(index, item) {
+         var type = $(item).data("type");
+         if (!type) { return; }
+         var handler = handlers[type],
+             jspOptions;
+         if ($.isFunction(handler)) {
+            jspOptions = handler($(item));
+         } else {
+            jspOptions = handler;
+         }
+         if (jspOptions && $.isArray(jspOptions)) {
+            $(item).attr("data-jsp-options", JSON.stringify(jspOptions));
+         }
+      });
+      context.on("click", ".jsparson-toggle", function() {
+         var $this = $(this),
+             curVal = $this.text(),
+             choices = $this.data("jsp-options");
+         $this.text(choices[(choices.indexOf(curVal) + 1)%choices.length]);
+      });
+   };
 
    var ParsonsWidget = function(options) {
      this.modified_lines = [];
@@ -636,6 +680,7 @@
        } else {
            this.createHTMLFromLists(idlist,[]);
        }
+       addToggleableElements(this);
    };
 
    ParsonsWidget.prototype.createHTMLFromHashes = function(solutionHash, trashHash) {
