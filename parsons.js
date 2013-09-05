@@ -83,24 +83,6 @@
        }
      }
    };
-   var python_exec = function(code, variables) {
-      var output = "",
-          mainmod,
-          result = {'variables': {}},
-          varname;
-      Sk.configure( { output: function(str) { output += str; } } );
-      try {
-        mainmod = Sk.importMainWithBody("<stdin>", false, code);
-      } catch (e) {
-        return {"_output": output, "_error": "" + e};
-      }
-      for (var i = 0; i < variables.length; i++) {
-        varname = variables[i];
-        result.variables[varname] = mainmod.tp$getattr(varname);
-      }
-      result._output = output;
-      return result;
-   };
    var python_indents = [],
         spaces = "";
    for (var counter = 0; counter < 20; counter++) {
@@ -556,65 +538,61 @@
 
      return {errors: errors, log_errors: log_errors};
    };
+  ParsonsWidget.prototype._codelinesAsString = function() {
+    var $lines = $("#sortable li");
+    var student_code = this.normalizeIndents(this.getModifiedCode("#ul-sortable"));
+    var executableCode = "";
+    $.each(student_code, function(index, item) {
+      // split codeblocks on br elements
+      var lines = $("#" + item.id).html().split(/<br\s*\/?>/);
+      // go through all the lines
+      for (var i = 0; i < lines.length; i++) {
+        // add indents and get the text for the line (to remove the syntax highlight html elements)
+        executableCode += python_indents[item.indent] + $("<span>" + lines[i] + "</span>").text() + "\n";
+      }
+    });
+    return executableCode;
+  };
+  function builtinRead(x) {
+    if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][x] === undefined)
+        throw "File not found: '" + x + "'";
+    return Sk.builtinFiles["files"][x];
+  }
   ParsonsWidget.prototype.unittest = function(unittests) {
     var that = this,
         feedback = "",
-        log_errors = [],
-        all_passed = true;
-    $.each(unittests, function(index, testdata) {
-      var $lines = $("#sortable li");
-      var student_code = that.normalizeIndents(that.getModifiedCode("#ul-sortable"));
-      var executableCode = "";
-      $.each(student_code, function(index, item) {
-        // split codeblocks on br elements
-        var lines = $("#" + item.id).html().split(/<br\s*\/?>/);
-        // go through all the lines
-        for (var i = 0; i < lines.length; i++) {
-          // add indents and get the text for the line (to remove the syntax highlight html elements)
-          executableCode += python_indents[item.indent] + $("<span>" + lines[i] + "</span>").text() + "\n";
-        }
-      });
-      executableCode += testdata.code;
-      var res = python_exec(executableCode, [testdata.variable]);
-      var testcaseFeedback = "",
-          success = true,
-          log_entry = {'code': testdata.code, 'msg': testdata.message},
-          expected_value,
-          actual_value;
-      if ("_error" in res) {
-        testcaseFeedback += that.translations.unittest_error(res._error);
-        success = false;
-        log_entry.type = "error";
-        log_entry.errormsg = res._error;
-      } else {
-        if (testdata.variable === "_output") { // checking output of the program
-          expected_value = testdata.expected;
-          actual_value = res._output;
-          testcaseFeedback += that.translations.unittest_output_assertion(expected_value, actual_value);
-        } else {
-          expected_value = formatVariableValue(testdata.expected);
-          actual_value = formatVariableValue(res.variables[testdata.variable]);
-          testcaseFeedback += that.translations.unittest_assertion(expected_value, actual_value);
-        }
-        log_entry.type = "assertion";
-        log_entry.variable = testdata.variable;
-        log_entry.expected = expected_value;
-        log_entry.actual = actual_value;
-        if (actual_value != expected_value) { // should we do a strict test??
-          success = false;
-        }
-      }
-      all_passed = all_passed && success;
-      log_entry.success = success;
-      log_errors.push(log_entry);
-      feedback += "<div class='testcase " + (success?"correct":"incorrect") +
-                  "'><span class='msg'>" + testdata.message + "</span><br>" +
-                  testcaseFeedback + "</div>";
-    });
-    if (all_passed) {
+        assertions = [],
+        success = true,
+        studentCode = this._codelinesAsString();
+    console.log(studentCode);
+    var executableCode = studentCode + unittests;
+    console.log(executableCode);
+    var log_entry = { 'code': executableCode, 'msg': testdata.message};
+    Sk.divid = "jsparson";
+    Sk.execLimit = 25000;
+    Sk.configure({output: console.log,
+                  read: builtinRead,
+                  python3: this.options.python3 || false
+                 });
+    try {
+      Sk.importMainWithBody("<stdin>", false, executableCode);
+    } catch (e) {
+      console.error(e);
+      success = false;
+      log_entry.type = "error";
+      log_entry.errormsg = e.toString();
+    }
+    if (!success) { // if there wasn't an error
+      log_entry.type = "unittest";
+      // TODO: collect results from DOM
+    }
+    log_entry.success = success;
+    if (success) {
       $("#ul-" + this.options.sortableId).addClass("correct");
     }
-    return { errors: feedback, "log_errors": log_errors, success: all_passed };
+    // TODO: figure out what would be sensible to log
+    //        AND LOG IT!!!
+    return { errors: feedback, "assertions": assertions, success: success };
   };
 
    /**
@@ -626,7 +604,7 @@
      this.feedback_exists = true;
      if (typeof(this.options.unittests) !== "undefined") { /// unittests are specified
       fb = this.unittest(this.options.unittests);
-      this.addLogEntry({type: "feedback", errors: fb.log_errors});
+      this.addLogEntry({type: "feedback", errors: assertions});
       return { feedback: fb.errors, success: fb.success };
      } else { // "traditional" parson feedback
       fb = this.colorFeedback(this.options.sortableId);
