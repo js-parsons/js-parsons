@@ -67,6 +67,7 @@ li.correctPosition, .testcase.pass {
 }
 
 .testcase { padding: 10px; margin-bottom: 10px;}
+.testcase .msg { font-weight: bold; }
 .testcase .error { color: red;}
 .testcase .feedback { font-weight: bolder;}
 .testcase.fail .expected, .testcase.fail .actual { 

@@ -31,7 +31,7 @@
        block_structure: function(lineNro) {
          return "Korostettu palanen (" + lineNro + ") on sisennetty väärään koodilohkoon."; },
        unittest_error: function(errormsg) {
-         return "Virhe ohjelman jäsentämisessä/suorituksessa: <span class='errormsg'>" + errormsg + "</span>";
+         return "<span class='msg'>Virhe ohjelman jäsentämisessä/suorituksessa</span><br/> <span class='errormsg'>" + errormsg + "</span>";
        },
        unittest_output_assertion: function(expected, actual) {
         return "Odotettu tulostus: <span class='expected output'>" + expected + "</span>" +
@@ -51,7 +51,7 @@
          return "Based on python syntax, the highlighted fragment (" + lineNro + ") is not correctly indented."; },
        block_structure: function(lineNro) { return "The highlighted fragment " + lineNro + " belongs to a wrong block (i.e. indentation)."; },
        unittest_error: function(errormsg) {
-         return "Error in parsing/executing your program: <span class='errormsg'>" + errormsg + "</span>";
+         return "<span class='msg'>Error in parsing/executing your program</span><br/> <span class='errormsg'>" + errormsg + "</span>";
        },
        unittest_output_assertion: function(expected, actual) {
         return "Expected output: <span class='expected output'>" + expected + "</span>" +
@@ -155,8 +155,7 @@
        'max_wrong_lines': 10,
        'trash_label': 'Drag from here',
        'solution_label': 'Construct your solution here',
-       'lang': 'en',
-       'unittestId': 'unittest'
+       'lang': 'en'
      };
      
      this.options = jQuery.extend({}, defaults, options);
@@ -559,40 +558,47 @@
     return Sk.builtinFiles["files"][x];
   }
   ParsonsWidget.prototype.unittest = function(unittests) {
-    var that = this,
-        feedback = "",
-        assertions = [],
-        success = true,
-        studentCode = this._codelinesAsString();
-    console.log(studentCode);
+    var success = true,
+        studentCode = this._codelinesAsString(),
+        feedbackHtml = "", // HTML to be returned as feedback
+        result, mainmod;
+
     var executableCode = studentCode + unittests;
-    console.log(executableCode);
-    var log_entry = { 'code': executableCode, 'msg': testdata.message};
-    Sk.divid = "jsparson";
-    Sk.execLimit = 25000;
-    Sk.configure({output: console.log,
+    Sk.execLimit = 2500; // time limit for the code to run
+    Sk.configure({output: console?console.log:function() {},
                   read: builtinRead,
                   python3: this.options.python3 || false
                  });
     try {
-      Sk.importMainWithBody("<stdin>", false, executableCode);
+      mainmod = Sk.importMainWithBody("<stdin>", false, executableCode);
+      result = JSON.parse(mainmod.tp$getattr("_test_result").v);
     } catch (e) {
-      console.error(e);
-      success = false;
-      log_entry.type = "error";
-      log_entry.errormsg = e.toString();
+      result = [{status: "error", _error: e.toString() }];
     }
-    if (!success) { // if there wasn't an error
-      log_entry.type = "unittest";
-      // TODO: collect results from DOM
+
+    // go through the results and generate HTML feedback    
+    for (var i = 0, l = result.length; i < l; i++) {
+      var res = result[i];
+      feedbackHtml += '<div class="testcase ' + res.status + '">';
+      if (res.status === "error") { // errors in execution
+        feedbackHtml += this.translations.unittest_error(res._error);
+        success = false;
+      } else { // passed or failed tests
+        feedbackHtml += '<span class="msg">' + res.feedback + '</span><br />';
+        feedbackHtml += 'Expected <span class="expected">' + res.expected +
+                  '</span>' + res.test + '<span class="actual">' + res.actual +
+                  '</span>';
+        if (res.status === "fail") {
+          success = false;
+        }
+      }
+      feedbackHtml += '</div>';
     }
-    log_entry.success = success;
+
     if (success) {
       $("#ul-" + this.options.sortableId).addClass("correct");
     }
-    // TODO: figure out what would be sensible to log
-    //        AND LOG IT!!!
-    return { errors: feedback, "assertions": assertions, success: success };
+    return { feedback: feedbackHtml, result: result, success: success };
   };
 
    /**
@@ -604,8 +610,8 @@
      this.feedback_exists = true;
      if (typeof(this.options.unittests) !== "undefined") { /// unittests are specified
       fb = this.unittest(this.options.unittests);
-      this.addLogEntry({type: "feedback", errors: assertions});
-      return { feedback: fb.errors, success: fb.success };
+      this.addLogEntry({type: "feedback", errors: fb.result, success: fb.success});
+      return { feedback: fb.feedback, success: fb.success };
      } else { // "traditional" parson feedback
       fb = this.colorFeedback(this.options.sortableId);
      

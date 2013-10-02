@@ -52,7 +52,7 @@
                           '"Calling function <code>maxindex([7, 2, 4])</code>.")\n' +
                   '    self.assertEqual(maxindex([7, 8, 4]),1,' +
                           '"Calling function <code>maxindex([7, 8, 4])</code>.")\n' +
-                  'myTests().main()';
+                  '_test_result = myTests().main()';
 
 
     $(document).ready(function(){
@@ -70,7 +70,7 @@
       $("#feedbackLink").click(function(event){
         event.preventDefault();
         var fb = parson.getFeedback();
-        $("#unittest").html("<h2>Feedback from testing your program:</h2>" +
+        $("#jsparson").html("<h2>Feedback from testing your program:</h2>" +
                             fb.feedback);
         if (fb.success) { alert("Good, you solved the assignment!"); }
       });
