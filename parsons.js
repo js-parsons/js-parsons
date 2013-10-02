@@ -564,6 +564,13 @@
         result, mainmod;
 
     var executableCode = studentCode + unittests;
+
+    // if there is code to add before student code, add it
+    if (this.options.unittest_code_prepend) {
+      executableCode = this.options.unittest_code_prepend + "\n\n" + executableCode;
+    }
+
+    // configuration for Skulpt
     Sk.execLimit = 2500; // time limit for the code to run
     Sk.configure({output: console?console.log:function() {},
                   read: builtinRead,
@@ -595,6 +602,7 @@
       feedbackHtml += '</div>';
     }
 
+    // if answer is correct, mark it in the UI
     if (success) {
       $("#ul-" + this.options.sortableId).addClass("correct");
     }
