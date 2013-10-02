@@ -567,7 +567,7 @@
 
     // if there is code to add before student code, add it
     if (this.options.unittest_code_prepend) {
-      executableCode = this.options.unittest_code_prepend + "\n\n" + executableCode;
+      executableCode = this.options.unittest_code_prepend + "\n" + executableCode;
     }
 
     // configuration for Skulpt
@@ -583,15 +583,37 @@
       result = [{status: "error", _error: e.toString() }];
     }
 
-    // go through the results and generate HTML feedback    
+    var lineNbrRegexp = /.*on line ([0-9]+).*/,
+        that = this,
+        stripLinenumberIfNeeded = function(msg) {
+          // function that fixes the line numbers in student feedback
+          var match = msg.match(lineNbrRegexp);
+          if (match) {
+            var lineNo = parseInt(match[1], 10),
+                lowerLimit = that.options.unittest_code_prepend?
+                                that.options.unittest_code_prepend.split('\n').length
+                                :0,
+                upperLimit = lowerLimit + studentCode.split('\n').length - 1;
+            // if error in prepended code or tests, remove the line number
+            if (lineNo <= lowerLimit || lineNo > upperLimit) {
+              return msg.replace(' on line ' + lineNo, '');
+            } else if (lowerLimit > 0) {
+              // if error in student code, make sure the line number matches student lines
+              return msg.replace(' on line ' + lineNo, ' on line ' + (lineNo - lowerLimit));
+            }
+          }
+          return msg;
+        };
+
+    // go through the results and generate HTML feedback
     for (var i = 0, l = result.length; i < l; i++) {
       var res = result[i];
       feedbackHtml += '<div class="testcase ' + res.status + '">';
       if (res.status === "error") { // errors in execution
-        feedbackHtml += this.translations.unittest_error(res._error);
+        feedbackHtml += this.translations.unittest_error(stripLinenumberIfNeeded(res._error));
         success = false;
       } else { // passed or failed tests
-        feedbackHtml += '<span class="msg">' + res.feedback + '</span><br />';
+        feedbackHtml += '<span class="msg">' + stripLinenumberIfNeeded(res.feedback) + '</span><br />';
         feedbackHtml += 'Expected <span class="expected">' + res.expected +
                   '</span>' + res.test + '<span class="actual">' + res.actual +
                   '</span>';
