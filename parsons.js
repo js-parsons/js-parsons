@@ -127,11 +127,18 @@
             $(item).attr("data-jsp-options", JSON.stringify(jspOptions));
          }
       });
+      // register a click handler for all the toggleable elements
       context.on("click", ".jsparson-toggle", function() {
          var $this = $(this),
              curVal = $this.text(),
-             choices = $this.data("jsp-options");
-         $this.text(choices[(choices.indexOf(curVal) + 1)%choices.length]);
+             choices = $this.data("jsp-options"),
+             newVal = choices[(choices.indexOf(curVal) + 1)%choices.length],
+             $parent = $this.parent("li");
+         // log the event
+         widget.addLogEntry({type: "toggle", oldvalue: curVal, newvalue: newVal,
+                           target: $parent[0].id,
+                           toggleindex: $parent.find(".jsparson-toggle").index($this)});
+         $this.text(newVal);
       });
    };
 
@@ -295,6 +302,33 @@
      return $.extend(false, {'visits': visits, stepsToLast: stepsToLast}, previously);
    };
    
+  /**
+    * Returns states of the toggles for logging purposes
+    */
+  ParsonsWidget.prototype._getToggleStates = function() {
+    var context = $("#" + this.options.sortableId + ", #" + this.options.trashId),
+        toggles = $(".jsparson-toggle", context),
+        toggleStates = {};
+    $("#" + this.options.sortableId + " .jsparson-toggle").each(function() {
+      if (!toggleStates.output) {
+        toggleStates.output = [];
+      }
+      toggleStates.output.push($(this).text());
+    });
+    if (this.options.trashId) {
+      toggleStates.input = [];
+      $("#" + this.options.trashId + " .jsparson-toggle").each(function() {
+        toggleStates.input.push($(this).text());
+      });
+    }
+    if ((toggleStates.output && toggleStates.output.length > 0) ||
+                  (toggleStates.input && toggleStates.input.length > 0)) {
+      return toggleStates;
+    } else {
+      return undefined;
+    }
+  };
+
    ParsonsWidget.prototype.addLogEntry = function(entry) {
      var state, previousState;
      var logData = {
@@ -302,13 +336,19 @@
        output: this.solutionHash(),
        type: "action"
      };
-     
+
      if (this.options.trashId) {
        logData.input = this.trashHash();
      }
 
      if (entry.target) {
        entry.target = entry.target.replace(this.id_prefix, "");
+     }
+
+     // add toggle states to log data if there are toggles
+     var toggles = this._getToggleStates();
+     if (toggles) {
+       logData.toggleStates = toggles;
      }
 
      state = logData.output;
@@ -636,12 +676,12 @@
     * TODO(petri): Separate UI from here
     */
    ParsonsWidget.prototype.getFeedback = function() {
-    var fb;
      this.feedback_exists = true;
+     var fb;
      if (typeof(this.options.unittests) !== "undefined") { /// unittests are specified
       fb = this.unittest(this.options.unittests);
       this.addLogEntry({type: "feedback", errors: fb.result, success: fb.success});
-      return { feedback: fb.feedback, success: fb.success };
+      return { feedback: fb.feedback, success: fb.success, toggles: this._getToggleStates() };
      } else { // "traditional" parson feedback
       fb = this.colorFeedback(this.options.sortableId);
      
