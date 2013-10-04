@@ -18,6 +18,9 @@ Juha Helminen, Petri Ihantola, Ville Karavirta, and Lauri Malmi. 2012. How do st
 
 Ville Karavirta, Juha Helminen, and Petri Ihantola. 2012. A mobile learning application for parsons problems with automatic feedback. In Proceedings of the 12th Koli Calling International Conference on Computing Education Research (Koli Calling '12). ACM, New York, NY, USA, 11-18. [DOI=10.1145/2401796.2401798](http://doi.acm.org/10.1145/2401796.2401798)
 
+Juha Helminen, Petri Ihantola, Ville Karavirta, and Satu Alaoutinen. 2013. How Do Students Solve Parsons Programming Problems? -- Execution-Based vs. Line-Based Feedback. In Proceedings of Learning and Teaching in Computing and Engineering (LaTiCE), 2013  [DOI=10.1109/LaTiCE.2013.26](http://dx.doi.org/10.1109/LaTiCE.2013.26)
+
+
 Authors
 -------
 
