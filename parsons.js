@@ -31,7 +31,7 @@
        block_structure: function(lineNro) {
          return "Korostettu palanen (" + lineNro + ") on sisennetty väärään koodilohkoon."; },
        unittest_error: function(errormsg) {
-         return "Virhe ohjelman jäsentämisessä/suorituksessa: <span class='errormsg'>" + errormsg + "</span>";
+         return "<span class='msg'>Virhe ohjelman jäsentämisessä/suorituksessa</span><br/> <span class='errormsg'>" + errormsg + "</span>";
        },
        unittest_output_assertion: function(expected, actual) {
         return "Odotettu tulostus: <span class='expected output'>" + expected + "</span>" +
@@ -51,7 +51,7 @@
          return "Based on python syntax, the highlighted fragment (" + lineNro + ") is not correctly indented."; },
        block_structure: function(lineNro) { return "The highlighted fragment " + lineNro + " belongs to a wrong block (i.e. indentation)."; },
        unittest_error: function(errormsg) {
-         return "Error in parsing/executing your program: <span class='errormsg'>" + errormsg + "</span>";
+         return "<span class='msg'>Error in parsing/executing your program</span><br/> <span class='errormsg'>" + errormsg + "</span>";
        },
        unittest_output_assertion: function(expected, actual) {
         return "Expected output: <span class='expected output'>" + expected + "</span>" +
@@ -82,24 +82,6 @@
               "Actual value: <span class='actual'>" + actual + "</span>";
        }
      }
-   };
-   var python_exec = function(code, variables) {
-      var output = "",
-          mainmod,
-          result = {'variables': {}},
-          varname;
-      Sk.configure( { output: function(str) { output += str; } } );
-      try {
-        mainmod = Sk.importMainWithBody("<stdin>", false, code);
-      } catch (e) {
-        return {"_output": output, "_error": "" + e};
-      }
-      for (var i = 0; i < variables.length; i++) {
-        varname = variables[i];
-        result.variables[varname] = mainmod.tp$getattr(varname);
-      }
-      result._output = output;
-      return result;
    };
    var python_indents = [],
         spaces = "";
@@ -145,11 +127,18 @@
             $(item).attr("data-jsp-options", JSON.stringify(jspOptions));
          }
       });
+      // register a click handler for all the toggleable elements
       context.on("click", ".jsparson-toggle", function() {
          var $this = $(this),
              curVal = $this.text(),
-             choices = $this.data("jsp-options");
-         $this.text(choices[(choices.indexOf(curVal) + 1)%choices.length]);
+             choices = $this.data("jsp-options"),
+             newVal = choices[(choices.indexOf(curVal) + 1)%choices.length],
+             $parent = $this.parent("li");
+         // log the event
+         widget.addLogEntry({type: "toggle", oldvalue: curVal, newvalue: newVal,
+                           target: $parent[0].id,
+                           toggleindex: $parent.find(".jsparson-toggle").index($this)});
+         $this.text(newVal);
       });
    };
 
@@ -173,8 +162,7 @@
        'max_wrong_lines': 10,
        'trash_label': 'Drag from here',
        'solution_label': 'Construct your solution here',
-       'lang': 'en',
-       'unittestId': 'unittest'
+       'lang': 'en'
      };
      
      this.options = jQuery.extend({}, defaults, options);
@@ -314,6 +302,33 @@
      return $.extend(false, {'visits': visits, stepsToLast: stepsToLast}, previously);
    };
    
+  /**
+    * Returns states of the toggles for logging purposes
+    */
+  ParsonsWidget.prototype._getToggleStates = function() {
+    var context = $("#" + this.options.sortableId + ", #" + this.options.trashId),
+        toggles = $(".jsparson-toggle", context),
+        toggleStates = {};
+    $("#" + this.options.sortableId + " .jsparson-toggle").each(function() {
+      if (!toggleStates.output) {
+        toggleStates.output = [];
+      }
+      toggleStates.output.push($(this).text());
+    });
+    if (this.options.trashId) {
+      toggleStates.input = [];
+      $("#" + this.options.trashId + " .jsparson-toggle").each(function() {
+        toggleStates.input.push($(this).text());
+      });
+    }
+    if ((toggleStates.output && toggleStates.output.length > 0) ||
+                  (toggleStates.input && toggleStates.input.length > 0)) {
+      return toggleStates;
+    } else {
+      return undefined;
+    }
+  };
+
    ParsonsWidget.prototype.addLogEntry = function(entry) {
      var state, previousState;
      var logData = {
@@ -321,13 +336,19 @@
        output: this.solutionHash(),
        type: "action"
      };
-     
+
      if (this.options.trashId) {
        logData.input = this.trashHash();
      }
 
      if (entry.target) {
        entry.target = entry.target.replace(this.id_prefix, "");
+     }
+
+     // add toggle states to log data if there are toggles
+     var toggles = this._getToggleStates();
+     if (toggles) {
+       logData.toggleStates = toggles;
      }
 
      state = logData.output;
@@ -556,65 +577,98 @@
 
      return {errors: errors, log_errors: log_errors};
    };
+  ParsonsWidget.prototype._codelinesAsString = function() {
+    var $lines = $("#sortable li");
+    var student_code = this.normalizeIndents(this.getModifiedCode("#ul-sortable"));
+    var executableCode = "";
+    $.each(student_code, function(index, item) {
+      // split codeblocks on br elements
+      var lines = $("#" + item.id).html().split(/<br\s*\/?>/);
+      // go through all the lines
+      for (var i = 0; i < lines.length; i++) {
+        // add indents and get the text for the line (to remove the syntax highlight html elements)
+        executableCode += python_indents[item.indent] + $("<span>" + lines[i] + "</span>").text() + "\n";
+      }
+    });
+    return executableCode;
+  };
+  function builtinRead(x) {
+    if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][x] === undefined)
+        throw "File not found: '" + x + "'";
+    return Sk.builtinFiles["files"][x];
+  }
   ParsonsWidget.prototype.unittest = function(unittests) {
-    var that = this,
-        feedback = "",
-        log_errors = [],
-        all_passed = true;
-    $.each(unittests, function(index, testdata) {
-      var $lines = $("#sortable li");
-      var student_code = that.normalizeIndents(that.getModifiedCode("#ul-sortable"));
-      var executableCode = "";
-      $.each(student_code, function(index, item) {
-        // split codeblocks on br elements
-        var lines = $("#" + item.id).html().split(/<br\s*\/?>/);
-        // go through all the lines
-        for (var i = 0; i < lines.length; i++) {
-          // add indents and get the text for the line (to remove the syntax highlight html elements)
-          executableCode += python_indents[item.indent] + $("<span>" + lines[i] + "</span>").text() + "\n";
-        }
-      });
-      executableCode += testdata.code;
-      var res = python_exec(executableCode, [testdata.variable]);
-      var testcaseFeedback = "",
-          success = true,
-          log_entry = {'code': testdata.code, 'msg': testdata.message},
-          expected_value,
-          actual_value;
-      if ("_error" in res) {
-        testcaseFeedback += that.translations.unittest_error(res._error);
+    var success = true,
+        studentCode = this._codelinesAsString(),
+        feedbackHtml = "", // HTML to be returned as feedback
+        result, mainmod;
+
+    var executableCode = studentCode + unittests;
+
+    // if there is code to add before student code, add it
+    if (this.options.unittest_code_prepend) {
+      executableCode = this.options.unittest_code_prepend + "\n" + executableCode;
+    }
+
+    // configuration for Skulpt
+    Sk.execLimit = 2500; // time limit for the code to run
+    Sk.configure({output: console?console.log:function() {},
+                  read: builtinRead,
+                  python3: this.options.python3 || false
+                 });
+    try {
+      mainmod = Sk.importMainWithBody("<stdin>", false, executableCode);
+      result = JSON.parse(mainmod.tp$getattr("_test_result").v);
+    } catch (e) {
+      result = [{status: "error", _error: e.toString() }];
+    }
+
+    var lineNbrRegexp = /.*on line ([0-9]+).*/,
+        that = this,
+        stripLinenumberIfNeeded = function(msg) {
+          // function that fixes the line numbers in student feedback
+          var match = msg.match(lineNbrRegexp);
+          if (match) {
+            var lineNo = parseInt(match[1], 10),
+                lowerLimit = that.options.unittest_code_prepend?
+                                that.options.unittest_code_prepend.split('\n').length
+                                :0,
+                upperLimit = lowerLimit + studentCode.split('\n').length - 1;
+            // if error in prepended code or tests, remove the line number
+            if (lineNo <= lowerLimit || lineNo > upperLimit) {
+              return msg.replace(' on line ' + lineNo, '');
+            } else if (lowerLimit > 0) {
+              // if error in student code, make sure the line number matches student lines
+              return msg.replace(' on line ' + lineNo, ' on line ' + (lineNo - lowerLimit));
+            }
+          }
+          return msg;
+        };
+
+    // go through the results and generate HTML feedback
+    for (var i = 0, l = result.length; i < l; i++) {
+      var res = result[i];
+      feedbackHtml += '<div class="testcase ' + res.status + '">';
+      if (res.status === "error") { // errors in execution
+        feedbackHtml += this.translations.unittest_error(stripLinenumberIfNeeded(res._error));
         success = false;
-        log_entry.type = "error";
-        log_entry.errormsg = res._error;
-      } else {
-        if (testdata.variable === "_output") { // checking output of the program
-          expected_value = testdata.expected;
-          actual_value = res._output;
-          testcaseFeedback += that.translations.unittest_output_assertion(expected_value, actual_value);
-        } else {
-          expected_value = formatVariableValue(testdata.expected);
-          actual_value = formatVariableValue(res.variables[testdata.variable]);
-          testcaseFeedback += that.translations.unittest_assertion(expected_value, actual_value);
-        }
-        log_entry.type = "assertion";
-        log_entry.variable = testdata.variable;
-        log_entry.expected = expected_value;
-        log_entry.actual = actual_value;
-        if (actual_value != expected_value) { // should we do a strict test??
+      } else { // passed or failed tests
+        feedbackHtml += '<span class="msg">' + stripLinenumberIfNeeded(res.feedback) + '</span><br />';
+        feedbackHtml += 'Expected <span class="expected">' + res.expected +
+                  '</span>' + res.test + '<span class="actual">' + res.actual +
+                  '</span>';
+        if (res.status === "fail") {
           success = false;
         }
       }
-      all_passed = all_passed && success;
-      log_entry.success = success;
-      log_errors.push(log_entry);
-      feedback += "<div class='testcase " + (success?"correct":"incorrect") +
-                  "'><span class='msg'>" + testdata.message + "</span><br>" +
-                  testcaseFeedback + "</div>";
-    });
-    if (all_passed) {
+      feedbackHtml += '</div>';
+    }
+
+    // if answer is correct, mark it in the UI
+    if (success) {
       $("#ul-" + this.options.sortableId).addClass("correct");
     }
-    return { errors: feedback, "log_errors": log_errors, success: all_passed };
+    return { feedback: feedbackHtml, result: result, success: success };
   };
 
    /**
@@ -622,12 +676,12 @@
     * TODO(petri): Separate UI from here
     */
    ParsonsWidget.prototype.getFeedback = function() {
-    var fb;
      this.feedback_exists = true;
+     var fb;
      if (typeof(this.options.unittests) !== "undefined") { /// unittests are specified
       fb = this.unittest(this.options.unittests);
-      this.addLogEntry({type: "feedback", errors: fb.log_errors});
-      return { feedback: fb.errors, success: fb.success };
+      this.addLogEntry({type: "feedback", errors: fb.result, success: fb.success});
+      return { feedback: fb.feedback, success: fb.success, toggles: this._getToggleStates() };
      } else { // "traditional" parson feedback
       fb = this.colorFeedback(this.options.sortableId);
      

@@ -110,14 +110,19 @@
     }
   };
 
-  var createParsonFeedbackForElement = function(elemId, parsonStateHash) {
-    var otherParson = new ParsonsWidget({
+  var createParsonFeedbackForElement = function(elemId, previousFeedbackState) {
+    var parsonStateHash = previousFeedbackState.state,
+        otherParson = new ParsonsWidget({
         'sortableId': elemId,
         'max_wrong_lines': 100
     });
     otherParson.init(exercise.code);
     otherParson.createHTMLFromHashes(parsonStateHash, "");
     otherParson.getFeedback();
+    $("#" + elemId + " .jsparson-toggle").each(function(index, item) {
+      $(this).text(previousFeedbackState.feedback.toggles.output[index]);
+    });
+
     return otherParson;
   };
 
@@ -129,7 +134,7 @@
         html += "<h2 style='clear:both;'>Test Results</h2>" + previousFeedbackState.feedback.feedback;
       }
       RevisitFeedback.html(html).label("Last Feedback").available(true);
-      createParsonFeedbackForElement("prevFeedback", previousFeedbackState.state);
+      createParsonFeedbackForElement("prevFeedback", previousFeedbackState);
     }
   };
   // callback function called when user action is done on codelines
@@ -302,7 +307,7 @@
                   'action_cb': actionCallback
                   }, PARSONS_SETTINGS.widget_options);
     if (exercise.unit_tests) {
-      widget_options.unittests = $.parseJSON(exercise.unit_tests);
+      widget_options.unittests = exercise.unit_tests;
     }
 
     // initialize the widget

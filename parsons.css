@@ -56,20 +56,21 @@ li.correctIndent {
     border-left: 10px solid green;
 }
 
-li.incorrectPosition, .testcase.incorrect {
+li.incorrectPosition, .testcase.fail, .testcase.error {
     background-color: #FFBABA;
     border:1px solid red;
 }
 
-li.correctPosition, .testcase.correct {
+li.correctPosition, .testcase.pass {
     background-color: #DFF2BF;
     border:1px solid green;
 }
 
 .testcase { padding: 10px; margin-bottom: 10px;}
-.testcase .errormsg { color: red;}
-.testcase .msg { font-weight: bolder;}
-.testcase.incorrect .expected, .testcase.incorrect .actual { 
+.testcase .msg { font-weight: bold; }
+.testcase .error { color: red;}
+.testcase .feedback { font-weight: bolder;}
+.testcase.fail .expected, .testcase.fail .actual { 
     color: red; 
     font-weight: bolder;
 }
