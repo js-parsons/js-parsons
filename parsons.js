@@ -116,6 +116,28 @@
       return varValue;
     }
   };
+  // Fix or strip line numbers in the (error) message
+  // Basically removes the number of lines in prependCode from the line number shown.
+  VariableCheckGrader.prototype.stripLinenumberIfNeeded = function(msg, prependCode, studentCode) {
+    var lineNbrRegexp = /.*on line ([0-9]+).*/;
+    // function that fixes the line numbers in student feedback
+    var match = msg.match(lineNbrRegexp);
+    if (match) {
+      var lineNo = parseInt(match[1], 10),
+          lowerLimit = prependCode?
+                          prependCode.split('\n').length
+                          :0,
+          upperLimit = lowerLimit + studentCode.split('\n').length - 1;
+      // if error in prepended code or tests, remove the line number
+      if (lineNo <= lowerLimit || lineNo > upperLimit) {
+        return msg.replace(' on line ' + lineNo, '');
+      } else if (lowerLimit > 0) {
+        // if error in student code, make sure the line number matches student lines
+        return msg.replace(' on line ' + lineNo, ' on line ' + (lineNo - lowerLimit));
+      }
+    }
+    return msg;
+  };
   VariableCheckGrader.prototype.grade = function() {
     var parson = this.parson,
         that = this,
@@ -124,18 +146,8 @@
         all_passed = true;
     $.each(parson.options.vartests, function(index, testdata) {
       var $lines = $("#sortable li");
-      var student_code = parson.normalizeIndents(parson.getModifiedCode("#ul-sortable"));
-      var executableCode = testdata.initcode || "";
-      $.each(student_code, function(index, item) {
-        // split codeblocks on br elements
-        var lines = $("#" + item.id).html().split(/<br\s*\/?>/);
-        // go through all the lines
-        for (var i = 0; i < lines.length; i++) {
-          // add indents and get the text for the line (to remove the syntax highlight html elements)
-          executableCode += python_indents[item.indent] + $("<span>" + lines[i] + "</span>").text() + "\n";
-        }
-      });
-      executableCode += testdata.code;
+      var student_code = parson._codelinesAsString();
+      var executableCode = (testdata.initcode || "") + "\n" + studentCode + "\n" + (testdata.code || "");
       var variables, expectedVals;
       if ('variables' in testdata) {
         variables = _.keys(testdata.variables);
@@ -152,13 +164,15 @@
           expected_value,
           actual_value;
       if ("_error" in res) {
-        testcaseFeedback += parson.translations.unittest_error(res._error);
+        testcaseFeedback += parson.translations.unittest_error(that.stripLinenumberIfNeeded(res._error,
+                                                                                      testdata.initcode,
+                                                                                      student_code));
         success = false;
         log_entry.type = "error";
         log_entry.errormsg = res._error;
       } else {
         log_entry.type = "assertion";
-        log_entry.variables = {}
+        log_entry.variables = {};
         for (var j = 0; j < variables.length; j++) {
           var variable = variables[j];
           if (variable === "__output") { // checking output of the program
@@ -190,6 +204,9 @@
   var UnitTestGrader = function(parson) {
     this.parson = parson;
   };
+  // copy the line number fixer from VariableCheckGrader
+  UnitTestGrader.prototype.stripLinenumberIfNeeded = VariableCheckGrader.prototype.stripLinenumberIfNeeded;
+  // do the grading
   UnitTestGrader.prototype.grade = function() {
     var success = true,
         parson = this.parson,
@@ -218,43 +235,23 @@
                   python3: parson.options.python3 || false
                  });
     try {
-      console.log(executableCode);
       mainmod = Sk.importMainWithBody("<stdin>", false, executableCode);
       result = JSON.parse(mainmod.tp$getattr("_test_result").v);
     } catch (e) {
       result = [{status: "error", _error: e.toString() }];
     }
 
-    var lineNbrRegexp = /.*on line ([0-9]+).*/,
-        stripLinenumberIfNeeded = function(msg) {
-          // function that fixes the line numbers in student feedback
-          var match = msg.match(lineNbrRegexp);
-          if (match) {
-            var lineNo = parseInt(match[1], 10),
-                lowerLimit = parson.options.unittest_code_prepend?
-                                parson.options.unittest_code_prepend.split('\n').length
-                                :0,
-                upperLimit = lowerLimit + studentCode.split('\n').length - 1;
-            // if error in prepended code or tests, remove the line number
-            if (lineNo <= lowerLimit || lineNo > upperLimit) {
-              return msg.replace(' on line ' + lineNo, '');
-            } else if (lowerLimit > 0) {
-              // if error in student code, make sure the line number matches student lines
-              return msg.replace(' on line ' + lineNo, ' on line ' + (lineNo - lowerLimit));
-            }
-          }
-          return msg;
-        };
-
     // go through the results and generate HTML feedback
     for (var i = 0, l = result.length; i < l; i++) {
       var res = result[i];
       feedbackHtml += '<div class="testcase ' + res.status + '">';
       if (res.status === "error") { // errors in execution
-        feedbackHtml += parson.translations.unittest_error(stripLinenumberIfNeeded(res._error));
+        feedbackHtml += parson.translations.unittest_error(this.stripLinenumberIfNeeded(res._error,
+                                                                    parson.options.unittest_code_prepend,
+                                                                    studentCode));
         success = false;
       } else { // passed or failed tests
-        feedbackHtml += '<span class="msg">' + stripLinenumberIfNeeded(res.feedback) + '</span><br />';
+        feedbackHtml += '<span class="msg">' + this.stripLinenumberIfNeeded(res.feedback) + '</span><br />';
         feedbackHtml += 'Expected <span class="expected">' + res.expected +
                   '</span>' + res.test + '<span class="actual">' + res.actual +
                   '</span>';
@@ -268,6 +265,7 @@
     return { html: feedbackHtml, result: result, success: success };
   };
 
+  // The "original" grader for giving line based feedback.
   var LineBasedGrader = function(parson) {
     this.parson = parson;
   };
@@ -296,7 +294,7 @@
 
     var inv = LIS.best_lise_inverse(lines);
     _.each(inv, function(itemId) {
-            $("#" + that.id_prefix + itemId).addClass("incorrectPosition");
+            $("#" + parson.id_prefix + itemId).addClass("incorrectPosition");
             incorrectLines.push(itemId);
           });
     if (inv.length > 0 || errors.length > 0) {
