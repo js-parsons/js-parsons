@@ -147,7 +147,7 @@
     $.each(parson.options.vartests, function(index, testdata) {
       var $lines = $("#sortable li");
       var student_code = parson._codelinesAsString();
-      var executableCode = (testdata.initcode || "") + "\n" + studentCode + "\n" + (testdata.code || "");
+      var executableCode = (testdata.initcode || "") + "\n" + student_code + "\n" + (testdata.code || "");
       var variables, expectedVals;
       if ('variables' in testdata) {
         variables = _.keys(testdata.variables);
@@ -215,7 +215,7 @@
         feedbackHtml = "", // HTML to be returned as feedback
         result, mainmod;
 
-    var executableCode = studentCode + unittests;
+    var executableCode = studentCode + "\n" + unittests;
 
     // if there is code to add before student code, add it
     if (parson.options.unittest_code_prepend) {
