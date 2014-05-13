@@ -2,24 +2,6 @@
 
    // regexp used for trimming
    var trimRegexp = /^\s*(.*?)\s*$/;
-   var formatVariableValue = function(varValue) {
-    var varType = typeof varValue;
-    if (varType === "undefined" || varValue === null) {
-      return "None";
-    } else if (varType === "string") { // show strings in quotes
-      return '"' + varValue + '"';
-    } else if (varType === "boolean") { // Python booleans with capital first letter
-      return varValue?"True":"False";
-    } else if ($.isArray(varValue)) { // JavaScript arrays
-      return '[' + varValue.join(', ') + ']';
-    } else if (varType === "object" && varValue.tp$name === "str") { // Python strings
-      return '"' + varValue.v + '"';
-    } else if (varType === "object" && varValue.tp$name === "list") { // Python lists
-      return '[' + varValue.v.join(', ') + ']';
-    } else {
-      return varValue;
-    }
-   };
    var translations = {
      fi: {
        order: function() {
@@ -39,6 +21,10 @@
        },
        unittest_assertion: function(expected, actual) {
         return "Odotettu arvo: <span class='expected'>" + expected + "</span><br>" +
+              "Ohjelmasi antama arvo: <span class='actual'>" + actual + "</span>";
+       },
+       variabletest_assertion: function(varname, expected, actual) {
+        return "Muuttujan " + varname + " odotettu arvo: <span class='expected'>" + expected + "</span> " +
               "Ohjelmasi antama arvo: <span class='actual'>" + actual + "</span>";
        }
      },
@@ -60,29 +46,303 @@
        unittest_assertion: function(expected, actual) {
         return "Expected value: <span class='expected'>" + expected + "</span><br>" +
               "Actual value: <span class='actual'>" + actual + "</span>";
-       }
-     },
-     enold: {
-       order: function() {
-         return "Some lines in incorrect position relative to the others.";},
-       lines_missing: function() {
-         return "Too few lines in your solution.";},
-       no_matching: function(lineNro) {
-         return "Line " + lineNro + " is not correctly indented. No matching indentation."; },
-       block_structure: function(lineNro) { return "Line " + lineNro + " is not indented correctly."; },
-       unittest_error: function(errormsg) {
-         return "Error in parsing/executing your program: <span class='errormsg'>" + errormsg + "</span>";
        },
-       unittest_output_assertion: function(expected, actual) {
-        return "Expected output: <span class='expected output'>" + expected + "</span>" +
-              "Output of your program: <span class='actual output'>" + actual + "</span>";
-       },
-       unittest_assertion: function(expected, actual) {
-        return "Expected value: <span class='expected'>" + expected + "</span><br>" +
+       variabletest_assertion: function(varname, expected, actual) {
+        return "Expected value of variable " + varname + ": <span class='expected'>" + expected + "</span><br>" +
               "Actual value: <span class='actual'>" + actual + "</span>";
        }
      }
    };
+
+  // Different graders
+
+
+  // Grader that will execute the code and check variable values after that
+  // Expected and supported options:
+  //  - vartests (required): array of variable test objects
+  // Each variable test object can/must have the following properties:
+  //  - initcode: code that will be prepended before the learner solution code
+  //  - code: code that will be appended after the learner solution code
+  //  - message (required): a textual description of the test, shown to learner
+  // Properties specifying what is tested:
+  //  - variables: an object with properties for each variable name to
+  //                          be tested; the value of the property is the expected
+  //                          value
+  // or
+  //  - variable: a variable name to be tested
+  //  - expected: expected value of the variable after code execution
+  var VariableCheckGrader = function(parson) {
+    this.parson = parson;
+  };
+  // Executes the given code using Skulpt and returns an object with variable
+  // values of the variables given in the variables array.
+  // Possible errors will be in the _error property of the returned object.
+  // Output of the code will be in _output property of the result.
+  // Example: this._python_exec("x=0\ny=2\nprint x", ["x", "y"])
+  //    will return object {"x": 0, "y": 2, "_output": "0"}
+  VariableCheckGrader.prototype._python_exec = function(code, variables) {
+      var output = "",
+          mainmod,
+          result = {'variables': {}},
+          varname;
+      // configure Skulpt
+      Sk.execLimit = parson.options.exec_limit || 2500; // time limit for the code to run
+      Sk.configure( { output: function(str) { output += str; },
+          python3: parson.options.python3 || false
+      } );
+      try {
+        mainmod = Sk.importMainWithBody("<stdin>", false, code);
+      } catch (e) {
+        return {"_output": output, "_error": "" + e};
+      }
+      for (var i = 0; i < variables.length; i++) {
+        varname = variables[i];
+        result.variables[varname] = mainmod.tp$getattr(varname);
+      }
+      result._output = output;
+      return result;
+  };
+  VariableCheckGrader.prototype.formatVariableValue = function(varValue) {
+    var varType = typeof varValue;
+    if (varType === "undefined" || varValue === null) {
+      return "None";
+    } else if (varType === "string") { // show strings in quotes
+      return '"' + varValue + '"';
+    } else if (varType === "boolean") { // Python booleans with capital first letter
+      return varValue?"True":"False";
+    } else if ($.isArray(varValue)) { // JavaScript arrays
+      return '[' + varValue.join(', ') + ']';
+    } else if (varType === "object" && varValue.tp$name === "str") { // Python strings
+      return '"' + varValue.v + '"';
+    } else if (varType === "object" && varValue.tp$name === "list") { // Python lists
+      return '[' + varValue.v.join(', ') + ']';
+    } else {
+      return varValue;
+    }
+  };
+  // Fix or strip line numbers in the (error) message
+  // Basically removes the number of lines in prependCode from the line number shown.
+  VariableCheckGrader.prototype.stripLinenumberIfNeeded = function(msg, prependCode, studentCode) {
+    var lineNbrRegexp = /.*on line ([0-9]+).*/;
+    // function that fixes the line numbers in student feedback
+    var match = msg.match(lineNbrRegexp);
+    if (match) {
+      var lineNo = parseInt(match[1], 10),
+          lowerLimit = prependCode?
+                          prependCode.split('\n').length
+                          :0,
+          upperLimit = lowerLimit + studentCode.split('\n').length - 1;
+      // if error in prepended code or tests, remove the line number
+      if (lineNo <= lowerLimit || lineNo > upperLimit) {
+        return msg.replace(' on line ' + lineNo, '');
+      } else if (lowerLimit > 0) {
+        // if error in student code, make sure the line number matches student lines
+        return msg.replace(' on line ' + lineNo, ' on line ' + (lineNo - lowerLimit));
+      }
+    }
+    return msg;
+  };
+  VariableCheckGrader.prototype.grade = function() {
+    var parson = this.parson,
+        that = this,
+        feedback = "",
+        log_errors = [],
+        all_passed = true;
+    $.each(parson.options.vartests, function(index, testdata) {
+      var $lines = $("#sortable li");
+      var student_code = parson._codelinesAsString();
+      var executableCode = (testdata.initcode || "") + "\n" + student_code + "\n" + (testdata.code || "");
+      var variables, expectedVals;
+      if ('variables' in testdata) {
+        variables = _.keys(testdata.variables);
+        expectedVals = testdata.variables;
+      } else {
+        variables = [testdata.variable];
+        expectedVals = {};
+        expectedVals[testdata.variable] = testdata.expected;
+      }
+      var res = that._python_exec(executableCode, variables);
+      var testcaseFeedback = "",
+          success = true,
+          log_entry = {'code': testdata.code, 'msg': testdata.message},
+          expected_value,
+          actual_value;
+      if ("_error" in res) {
+        testcaseFeedback += parson.translations.unittest_error(that.stripLinenumberIfNeeded(res._error,
+                                                                                      testdata.initcode,
+                                                                                      student_code));
+        success = false;
+        log_entry.type = "error";
+        log_entry.errormsg = res._error;
+      } else {
+        log_entry.type = "assertion";
+        log_entry.variables = {};
+        for (var j = 0; j < variables.length; j++) {
+          var variable = variables[j];
+          if (variable === "__output") { // checking output of the program
+            expected_value = testdata.expected;
+            actual_value = res._output;
+            testcaseFeedback += parson.translations.unittest_output_assertion(expected_value, actual_value);
+          } else {
+            expected_value = that.formatVariableValue(expectedVals[variable]);
+            actual_value = that.formatVariableValue(res.variables[variable].v);
+            testcaseFeedback += parson.translations.variabletest_assertion(variable, expected_value, actual_value) + "<br/>";
+          }
+          log_entry.variables[variable] = {expected: expected_value, actual: actual_value};
+          if (actual_value != expected_value) { // should we do a strict test??
+            success = false;
+          }
+        }
+      }
+      all_passed = all_passed && success;
+      log_entry.success = success;
+      log_errors.push(log_entry);
+      feedback += "<div class='testcase " + (success?"pass":"fail") +
+                  "'><span class='msg'>" + testdata.message + "</span><br>" +
+                  testcaseFeedback + "</div>";
+    });
+    return { html: feedback, "log_errors": log_errors, success: all_passed };
+  };
+
+  // Grader that will execute student code and Skulpt unittests
+  var UnitTestGrader = function(parson) {
+    this.parson = parson;
+  };
+  // copy the line number fixer from VariableCheckGrader
+  UnitTestGrader.prototype.stripLinenumberIfNeeded = VariableCheckGrader.prototype.stripLinenumberIfNeeded;
+  // do the grading
+  UnitTestGrader.prototype.grade = function() {
+    var success = true,
+        parson = this.parson,
+        unittests = parson.options.unittests,
+        studentCode = parson._codelinesAsString(),
+        feedbackHtml = "", // HTML to be returned as feedback
+        result, mainmod;
+
+    var executableCode = studentCode + "\n" + unittests;
+
+    // if there is code to add before student code, add it
+    if (parson.options.unittest_code_prepend) {
+      executableCode = parson.options.unittest_code_prepend + "\n" + executableCode;
+    }
+
+    function builtinRead(x) {
+      if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][x] === undefined)
+          throw "File not found: '" + x + "'";
+      return Sk.builtinFiles["files"][x];
+    }
+
+    // configuration for Skulpt
+    Sk.execLimit = parson.options.exec_limit || 2500; // time limit for the code to run
+    Sk.configure({output: console?console.log:function() {},
+                  read: builtinRead,
+                  python3: parson.options.python3 || false
+                 });
+    try {
+      mainmod = Sk.importMainWithBody("<stdin>", false, executableCode);
+      result = JSON.parse(mainmod.tp$getattr("_test_result").v);
+    } catch (e) {
+      result = [{status: "error", _error: e.toString() }];
+    }
+
+    // go through the results and generate HTML feedback
+    for (var i = 0, l = result.length; i < l; i++) {
+      var res = result[i];
+      feedbackHtml += '<div class="testcase ' + res.status + '">';
+      if (res.status === "error") { // errors in execution
+        feedbackHtml += parson.translations.unittest_error(this.stripLinenumberIfNeeded(res._error,
+                                                                    parson.options.unittest_code_prepend,
+                                                                    studentCode));
+        success = false;
+      } else { // passed or failed tests
+        feedbackHtml += '<span class="msg">' + this.stripLinenumberIfNeeded(res.feedback) + '</span><br />';
+        feedbackHtml += 'Expected <span class="expected">' + res.expected +
+                  '</span>' + res.test + '<span class="actual">' + res.actual +
+                  '</span>';
+        if (res.status === "fail") {
+          success = false;
+        }
+      }
+      feedbackHtml += '</div>';
+    }
+
+    return { html: feedbackHtml, result: result, success: success };
+  };
+
+  // The "original" grader for giving line based feedback.
+  var LineBasedGrader = function(parson) {
+    this.parson = parson;
+  };
+  LineBasedGrader.prototype.grade = function(elementId) {
+    var parson = this.parson;
+    var elemId = elementId || parson.options.sortableId;
+    var student_code = parson.normalizeIndents(parson.getModifiedCode("#ul-" + elemId));
+    var lines_to_check = Math.min(student_code.length, parson.model_solution.length);
+    var errors = [], log_errors = [];
+    var incorrectLines = [], lines = [];
+    var id, line, i;
+    var wrong_order = false;
+
+    //remove distractors from lines and add all those to the set of misplaced lines
+    for (i=0; i<student_code.length; i++) {
+      id = parseInt(student_code[i].id.replace(parson.id_prefix, ""), 10);
+      line = parson.getLineById(parson.id_prefix + id);
+      if (line.distractor) {
+        incorrectLines.push(id);
+        wrong_order = true;
+        $("#" + parson.id_prefix + id).addClass("incorrectPosition");
+      } else {
+        lines.push(id);
+      }
+    }
+
+    var inv = LIS.best_lise_inverse(lines);
+    _.each(inv, function(itemId) {
+            $("#" + parson.id_prefix + itemId).addClass("incorrectPosition");
+            incorrectLines.push(itemId);
+          });
+    if (inv.length > 0 || errors.length > 0) {
+      wrong_order = true;
+      log_errors.push({type: "incorrectPosition", lines: incorrectLines});
+    }
+
+    if (wrong_order) {
+      errors.push(parson.translations.order());
+    }
+
+    // Always show this feedback
+    if (parson.model_solution.length < student_code.length) {
+      //$("#ul-" + elemId).addClass("incorrect");
+      //errors.push("Too many lines in your solution.");
+      log_errors.push({type: "tooManyLines", lines: student_code.length});
+    } else if (parson.model_solution.length > student_code.length){
+      $("#ul-" + elemId).addClass("incorrect");
+      errors.push(parson.translations.lines_missing());
+      log_errors.push({type: "tooFewLines", lines: student_code.length});
+    }
+
+    if (errors.length === 0) { // check indent if no other errors
+      for (i = 0; i < lines_to_check; i++) {
+        var code_line = student_code[i];
+        var model_line = parson.model_solution[i];
+        if (code_line.indent !== model_line.indent &&
+             ((!parson.options.first_error_only) || errors.length === 0)) {
+          $("#" + code_line.id).addClass("incorrectIndent");
+          errors.push(parson.translations.block_structure(i+1));
+          log_errors.push({type: "incorrectIndent", line: (i+1)});
+        }
+        if (code_line.code == model_line.code &&
+             code_line.indent == model_line.indent &&
+             errors.length === 0) {
+          $("#" + code_line.id).addClass("correctPosition");
+        }
+      }
+    }
+
+    return {errors: errors, log_errors: log_errors, success: (errors.length === 0)};
+  };
+
+
    var python_indents = [],
         spaces = "";
    for (var counter = 0; counter < 20; counter++) {
@@ -110,7 +370,7 @@
    };
    var addToggleableElements = function(widget) {
       // toggleable elements are only enabled for unit tests
-      if (!widget.options.unittests) { return; }
+      if (!widget.options.unittests && !widget.options.vartests) { return; }
       var handlers = $.extend(defaultToggleTypeHandlers, widget.options.toggleTypeHandlers),
           context = $("#" + widget.options.sortableId + ", #" + widget.options.trashId);
       $(".jsparson-toggle", context).each(function(index, item) {
@@ -177,6 +437,15 @@
                               'incorrectPosition' : 'incorrectPosition',
                               'correctIndent' : 'correctIndent',
                               'incorrectIndent' : 'incorrectIndent'};
+
+    // initialize the grader
+    if (typeof(this.options.unittests) !== "undefined") { /// unittests are specified
+      this.grader = new UnitTestGrader(this);
+    } else if (typeof(this.options.vartests) !== "undefined") { /// tests for variable values
+      this.grader = new VariableCheckGrader(this);
+    } else { // "traditional" parson feedback
+      this.grader = new LineBasedGrader(this);
+    }
    };
       
    //Public methods
@@ -505,78 +774,11 @@
      alert(message);
    };
 
-
    ParsonsWidget.prototype.colorFeedback = function(elemId) {
-     var student_code = this.normalizeIndents(this.getModifiedCode("#ul-" + elemId));
-     var lines_to_check = Math.min(student_code.length, this.model_solution.length);
-     var errors = [], log_errors = [];
-     var incorrectLines = [], lines = [];
-     var id, line, i;
-     var wrong_order = false;
-     
-     //remove distractors from lines and add all those to the set of misplaced lines
-     for (i=0; i<student_code.length; i++) {
-       id = parseInt(student_code[i].id.replace(this.id_prefix, ""), 10);
-       line = this.getLineById(this.id_prefix + id);
-       if (line.distractor) {
-         incorrectLines.push(id);
-         wrong_order = true;
-         $("#" + this.id_prefix + id).addClass("incorrectPosition");
-       } else {
-         lines.push(id);
-       }
-     }
-
-     var inv = LIS.best_lise_inverse(lines);
-     var that = this;
-     _.each(inv, function(itemId) {
-              $("#" + that.id_prefix + itemId).addClass("incorrectPosition");
-              incorrectLines.push(itemId);
-            });
-     if (inv.length > 0 || errors.length > 0) {
-       wrong_order = true;
-       log_errors.push({type: "incorrectPosition", lines: incorrectLines});
-     }
-
-     if (wrong_order) {
-       errors.push(this.translations.order());
-     }
-
-     // Always show this feedback
-     if (this.model_solution.length < student_code.length) {
-       //$("#ul-" + elemId).addClass("incorrect");
-       //errors.push("Too many lines in your solution.");
-       log_errors.push({type: "tooManyLines", lines: student_code.length});
-     } else if (this.model_solution.length > student_code.length){
-       $("#ul-" + elemId).addClass("incorrect");
-       errors.push(this.translations.lines_missing());
-       log_errors.push({type: "tooFewLines", lines: student_code.length});
-     }
-     
-     if (errors.length === 0) { // check indent if no other errors
-       for (i = 0; i < lines_to_check; i++) {
-         var code_line = student_code[i];
-         var model_line = this.model_solution[i];
-         if (code_line.indent !== model_line.indent &&
-             ((!this.options.first_error_only) || errors.length === 0)) {
-           $("#" + code_line.id).addClass("incorrectIndent");
-           errors.push(this.translations.block_structure(i+1));
-           log_errors.push({type: "incorrectIndent", line: (i+1)});
-         }
-         if (code_line.code == model_line.code &&
-             code_line.indent == model_line.indent &&
-             errors.length === 0) {
-           $("#" + code_line.id).addClass("correctPosition");
-         }
-       }
-     }
-
-     if (errors.length === 0) {
-       $("#ul-" + elemId).addClass("correct");
-     }
-
-     return {errors: errors, log_errors: log_errors};
+     return new LineBasedGrader(this).grade(elemId);
    };
+
+
   ParsonsWidget.prototype._codelinesAsString = function() {
     var $lines = $("#sortable li");
     var student_code = this.normalizeIndents(this.getModifiedCode("#ul-sortable"));
@@ -592,84 +794,6 @@
     });
     return executableCode;
   };
-  function builtinRead(x) {
-    if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][x] === undefined)
-        throw "File not found: '" + x + "'";
-    return Sk.builtinFiles["files"][x];
-  }
-  ParsonsWidget.prototype.unittest = function(unittests) {
-    var success = true,
-        studentCode = this._codelinesAsString(),
-        feedbackHtml = "", // HTML to be returned as feedback
-        result, mainmod;
-
-    var executableCode = studentCode + unittests;
-
-    // if there is code to add before student code, add it
-    if (this.options.unittest_code_prepend) {
-      executableCode = this.options.unittest_code_prepend + "\n" + executableCode;
-    }
-
-    // configuration for Skulpt
-    Sk.execLimit = 2500; // time limit for the code to run
-    Sk.configure({output: console?console.log:function() {},
-                  read: builtinRead,
-                  python3: this.options.python3 || false
-                 });
-    try {
-      mainmod = Sk.importMainWithBody("<stdin>", false, executableCode);
-      result = JSON.parse(mainmod.tp$getattr("_test_result").v);
-    } catch (e) {
-      result = [{status: "error", _error: e.toString() }];
-    }
-
-    var lineNbrRegexp = /.*on line ([0-9]+).*/,
-        that = this,
-        stripLinenumberIfNeeded = function(msg) {
-          // function that fixes the line numbers in student feedback
-          var match = msg.match(lineNbrRegexp);
-          if (match) {
-            var lineNo = parseInt(match[1], 10),
-                lowerLimit = that.options.unittest_code_prepend?
-                                that.options.unittest_code_prepend.split('\n').length
-                                :0,
-                upperLimit = lowerLimit + studentCode.split('\n').length - 1;
-            // if error in prepended code or tests, remove the line number
-            if (lineNo <= lowerLimit || lineNo > upperLimit) {
-              return msg.replace(' on line ' + lineNo, '');
-            } else if (lowerLimit > 0) {
-              // if error in student code, make sure the line number matches student lines
-              return msg.replace(' on line ' + lineNo, ' on line ' + (lineNo - lowerLimit));
-            }
-          }
-          return msg;
-        };
-
-    // go through the results and generate HTML feedback
-    for (var i = 0, l = result.length; i < l; i++) {
-      var res = result[i];
-      feedbackHtml += '<div class="testcase ' + res.status + '">';
-      if (res.status === "error") { // errors in execution
-        feedbackHtml += this.translations.unittest_error(stripLinenumberIfNeeded(res._error));
-        success = false;
-      } else { // passed or failed tests
-        feedbackHtml += '<span class="msg">' + stripLinenumberIfNeeded(res.feedback) + '</span><br />';
-        feedbackHtml += 'Expected <span class="expected">' + res.expected +
-                  '</span>' + res.test + '<span class="actual">' + res.actual +
-                  '</span>';
-        if (res.status === "fail") {
-          success = false;
-        }
-      }
-      feedbackHtml += '</div>';
-    }
-
-    // if answer is correct, mark it in the UI
-    if (success) {
-      $("#ul-" + this.options.sortableId).addClass("correct");
-    }
-    return { feedback: feedbackHtml, result: result, success: success };
-  };
 
    /**
     * @return
@@ -677,19 +801,21 @@
     */
    ParsonsWidget.prototype.getFeedback = function() {
      this.feedback_exists = true;
-     var fb;
-     if (typeof(this.options.unittests) !== "undefined") { /// unittests are specified
-      fb = this.unittest(this.options.unittests);
-      this.addLogEntry({type: "feedback", errors: fb.result, success: fb.success});
-      return { feedback: fb.feedback, success: fb.success, toggles: this._getToggleStates() };
-     } else { // "traditional" parson feedback
-      fb = this.colorFeedback(this.options.sortableId);
-     
-      if (this.options.feedback_cb) {
-        this.options.feedback_cb(fb); //TODO(petri): what is needed?
-      }
-      this.addLogEntry({type: "feedback", errors: fb.log_errors});
-      return fb.errors;
+     var fb = this.grader.grade();
+     if (this.options.feedback_cb) {
+       this.options.feedback_cb(fb); //TODO(petri): what is needed?
+     }
+     // if answer is correct, mark it in the UI
+     if (fb.success) {
+       $("#ul-" + this.options.sortableId).addClass("correct");
+     }
+     // log the feedback and return; based on the type of grader
+     if ('html' in fb) { // unittest/vartests type feedback
+       this.addLogEntry({type: "feedback", errors: fb.result, success: fb.success, toggles: this._getToggleStates()});
+       return { feedback: fb.html, success: fb.success };
+     } else {
+       this.addLogEntry({type: "feedback", errors: fb.log_errors, success: fb.success});
+       return fb.errors;
      }
    };
 
