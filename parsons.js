@@ -86,9 +86,9 @@
           result = {'variables': {}},
           varname;
       // configure Skulpt
-      Sk.execLimit = parson.options.exec_limit || 2500; // time limit for the code to run
+      Sk.execLimit = this.parson.options.exec_limit || 2500; // time limit for the code to run
       Sk.configure( { output: function(str) { output += str; },
-          python3: parson.options.python3 || false
+          python3: this.parson.options.python3 || false
       } );
       try {
         mainmod = Sk.importMainWithBody("<stdin>", false, code);
