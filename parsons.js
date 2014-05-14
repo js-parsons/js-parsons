@@ -387,18 +387,19 @@
             $(item).attr("data-jsp-options", JSON.stringify(jspOptions));
          }
       });
-      // register a click handler for all the toggleable elements
-      context.on("click", ".jsparson-toggle", function() {
+      // register a click handler for all the toggleable elements (and unregister existing)
+      context.off("click", ".jsparson-toggle").on("click", ".jsparson-toggle", function() {
          var $this = $(this),
              curVal = $this.text(),
              choices = $this.data("jsp-options"),
              newVal = choices[(choices.indexOf(curVal) + 1)%choices.length],
              $parent = $this.parent("li");
+         // change the shown toggle element
+         $this.text(newVal);
          // log the event
          widget.addLogEntry({type: "toggle", oldvalue: curVal, newvalue: newVal,
                            target: $parent[0].id,
                            toggleindex: $parent.find(".jsparson-toggle").index($this)});
-         $this.text(newVal);
       });
    };
 
