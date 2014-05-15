@@ -4,6 +4,8 @@
    var trimRegexp = /^\s*(.*?)\s*$/;
    var translations = {
      fi: {
+       trash_label: 'Raahaa rivit ohjelmaasi tästä',
+       solution_label: 'Muodosta ratkaisusi tähän',
        order: function() {
          return "Ohjelma sisältää vääriä palasia tai palasten järjestys on väärä. Tämä on mahdollista korjata siirtämällä, poistamalla tai vaihtamalla korostettuja palasia.";},
        lines_missing: function() {
@@ -29,6 +31,8 @@
        }
      },
      en: {
+       trash_label: 'Drag from here',
+       solution_label: 'Construct your solution here',
        order: function() {
          return "Code fragments in your program are wrong, or in wrong order. This can be fixed by moving, removing, or replacing highlighted fragments.";},
        lines_missing: function() {
@@ -420,8 +424,6 @@
        'feedback_cb': false,
        'first_error_only': true,
        'max_wrong_lines': 10,
-       'trash_label': 'Drag from here',
-       'solution_label': 'Construct your solution here',
        'lang': 'en'
      };
      
@@ -432,6 +434,14 @@
        this.translations = translations[this.options.lang];
      } else {
        this.translations = translations['en'];
+     }
+
+     // translate trash_label and solution_label
+     if (!this.options.hasOwnProperty("trash_label")) {
+         this.options.trash_label = this.translations.trash_label;
+     }
+     if (!this.options.hasOwnProperty("solution_label")) {
+         this.options.solution_label = this.translations.solution_label;
      }
      this.FEEDBACK_STYLES = { 'correctPosition' : 'correctPosition',
                               'incorrectPosition' : 'incorrectPosition',
