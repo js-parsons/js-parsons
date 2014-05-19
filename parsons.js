@@ -645,10 +645,10 @@
      //Add new item to the state path only if new and previous states are not equal
      if (this.state_path[this.state_path.length - 1] !== state) {
        this.state_path.push(state);
-       // callback for reacting to actions
-       if ($.isFunction(this.options.action_cb)) {
-         this.options.action_cb.call(this, logData);
-       }
+     }
+     // callback for reacting to actions
+     if ($.isFunction(this.options.action_cb)) {
+       this.options.action_cb.call(this, logData);
      }
    };
 
@@ -791,8 +791,8 @@
 
 
   ParsonsWidget.prototype._codelinesAsString = function() {
-    var $lines = $("#sortable li");
-    var student_code = this.normalizeIndents(this.getModifiedCode("#ul-sortable"));
+    var $lines = $("#" + this.options.sortableId + " li");
+    var student_code = this.normalizeIndents(this.getModifiedCode("#ul-" + this.options.sortableId));
     var executableCode = "";
     $.each(student_code, function(index, item) {
       // split codeblocks on br elements
