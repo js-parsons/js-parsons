@@ -148,7 +148,17 @@
   };
   //Return executable code in one string
   VariableCheckGrader.prototype._codelinesAsString = function() {
-    var student_code = this.parson.getModifiedCode("#ul-" + this.parson.options.sortableId);
+    var student_code = this.parson.getModifiedCode("#ul-" + this.parson.options.sortableId),
+        normalized_code = '';
+    if (this.parson.options.always_visualize_incorrect_indentation) {
+      normalized_code = this.parson.normalizeIndents(student_code);
+      $.each(normalized_code, function(index, item) {
+        if (item.indent < 0) {
+          //TODO: Should we highlight only the first incorrectly indented line?
+          $("#" + item.id).addClass("incorrectIndent");
+        }
+      });
+    }
     var executableCode = "";
     $.each(student_code, function(index, item) {
       // split codeblocks on br elements
@@ -441,7 +451,8 @@
        'feedback_cb': false,
        'first_error_only': true,
        'max_wrong_lines': 10,
-       'lang': 'en'
+       'lang': 'en',
+       'always_visualize_incorrect_indentation': true
      };
      
      this.options = jQuery.extend({}, defaults, options);
