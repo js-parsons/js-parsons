@@ -467,6 +467,13 @@
      };
    };
    
+   // Parses an assignment definition given as a string and returns an object
+   // used to build the assignment.
+   //
+   // lines: A string that defines the solution to the assignment and also 
+   //   any possible distractors
+   // max_distractrors: The number of distractors allowed to be included with
+   //   the lines required in the solution
    ParsonsWidget.prototype.parseCode = function(lines, max_distractors) {
      var distractors = [],
      indented = [],
