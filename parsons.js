@@ -60,7 +60,7 @@
 
   // Different graders
 
-
+  var graders = {};
   // Grader that will execute the code and check variable values after that
   // Expected and supported options:
   //  - vartests (required): array of variable test objects
@@ -78,6 +78,7 @@
   var VariableCheckGrader = function(parson) {
     this.parson = parson;
   };
+  graders.VariableCheckGrader = VariableCheckGrader;
   // Executes the given code using Skulpt and returns an object with variable
   // values of the variables given in the variables array.
   // Possible errors will be in the _error property of the returned object.
@@ -146,7 +147,7 @@
     }
     return msg;
   };
-  VariableCheckGrader.prototype.grade = function() {
+  VariableCheckGrader.prototype.grade = function(studentcode) {
     var parson = this.parson,
         that = this,
         feedback = "",
@@ -154,7 +155,7 @@
         all_passed = true;
     $.each(parson.options.vartests, function(index, testdata) {
       var $lines = $("#sortable li");
-      var student_code = parson._codelinesAsString();
+      var student_code = studentcode || parson._codelinesAsString();
       var executableCode = (testdata.initcode || "") + "\n" + student_code + "\n" + (testdata.code || "");
       var variables, expectedVals;
       if ('variables' in testdata) {
@@ -212,14 +213,15 @@
   var UnitTestGrader = function(parson) {
     this.parson = parson;
   };
+  graders.UnitTestGrader = UnitTestGrader;
   // copy the line number fixer from VariableCheckGrader
   UnitTestGrader.prototype.stripLinenumberIfNeeded = VariableCheckGrader.prototype.stripLinenumberIfNeeded;
   // do the grading
-  UnitTestGrader.prototype.grade = function() {
+  UnitTestGrader.prototype.grade = function(studentcode) {
     var success = true,
         parson = this.parson,
         unittests = parson.options.unittests,
-        studentCode = parson._codelinesAsString(),
+        studentCode = studentcode || parson._codelinesAsString(),
         feedbackHtml = "", // HTML to be returned as feedback
         result, mainmod;
 
@@ -273,10 +275,44 @@
     return { html: feedbackHtml, result: result, success: success };
   };
 
+  // Code "Translating" grader
+  var LanguageTranslationGrader = function(parson) {
+    this.parson = parson;
+  };
+  graders.LanguageTranslationGrader = LanguageTranslationGrader;
+  LanguageTranslationGrader.prototype.grade = function() {
+    // TODO: check opening and closing blocks
+    // TODO: regexps for pairs? or regexps for opening and regexps for closing?
+    // Replace codelines show with codelines to be executed
+    var code = this._replaceCodelines();
+    // run unit tests or variable check grader
+    if (this.parson.options.unittests) {
+      return new UnitTestGrader(this.parson).grade(code);
+    } else {
+      return new VariableCheckGrader(this.parson).grade(code);
+    }
+  };
+  LanguageTranslationGrader.prototype._replaceCodelines = function() {
+    var student_code = this.parson.normalizeIndents(this.parson.getModifiedCode("#ul-" + this.parson.options.sortableId)),
+        executableCodeString = "",
+        parson = this.parson,
+        executableCode = parson.options.executable_code;
+    if (typeof executableCode === "string") {
+      executableCode = executableCode.split("\n");
+    }
+    // TODO: toggle elements
+    $.each(student_code, function(index, item) {
+      var ind = parseInt(item.id.replace(parson.id_prefix, ''), 10);
+      executableCodeString += python_indents[item.indent] + executableCode[ind] + "\n";
+    });
+    return executableCodeString;
+  };
+
   // The "original" grader for giving line based feedback.
   var LineBasedGrader = function(parson) {
     this.parson = parson;
   };
+  graders.LineBasedGrader = LineBasedGrader;
   LineBasedGrader.prototype.grade = function(elementId) {
     var parson = this.parson;
     var elemId = elementId || parson.options.sortableId;
@@ -449,15 +485,21 @@
                               'correctIndent' : 'correctIndent',
                               'incorrectIndent' : 'incorrectIndent'};
 
-    // initialize the grader
-    if (typeof(this.options.unittests) !== "undefined") { /// unittests are specified
-      this.grader = new UnitTestGrader(this);
-    } else if (typeof(this.options.vartests) !== "undefined") { /// tests for variable values
-      this.grader = new VariableCheckGrader(this);
-    } else { // "traditional" parson feedback
-      this.grader = new LineBasedGrader(this);
+    // use grader passed as an option if defined and is a function
+    if (this.options.grader && _.isFunction(this.options.grader)) {
+      this.grader = new this.options.grader(this);
+    } else {
+      // initialize the grader
+      if (typeof(this.options.unittests) !== "undefined") { /// unittests are specified
+        this.grader = new UnitTestGrader(this);
+      } else if (typeof(this.options.vartests) !== "undefined") { /// tests for variable values
+        this.grader = new VariableCheckGrader(this);
+      } else { // "traditional" parson feedback
+        this.grader = new LineBasedGrader(this);
+      }
     }
    };
+  ParsonsWidget._graders = graders;
       
    //Public methods
    ParsonsWidget.prototype.parseLine = function(spacePrefixedLine) {
