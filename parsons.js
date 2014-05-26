@@ -469,8 +469,8 @@
      };
    };
    
-   // Parses an assignment definition given as a string and returns an object
-   // used to build the assignment.
+   // Parses an assignment definition given as a string and returns and 
+   // transforms this into an object defining the assignment with line objects.
    //
    // lines: A string that defines the solution to the assignment and also 
    //   any possible distractors
@@ -545,6 +545,7 @@
    };
 
    ParsonsWidget.prototype.init = function(text) {
+	 // TODO: Error handling, parseCode may return errors in an array in property named errors.
      var initial_structures = this.parseCode(text.split("\n"), this.options.max_wrong_lines);
      this.model_solution = initial_structures.solution;
      this.extra_lines = initial_structures.distractors;
