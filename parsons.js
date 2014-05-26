@@ -721,11 +721,8 @@
      return new_indent;
    };
 
-   /**
-    *
-    * @param id
-    * @return
-    */
+   // Get a line object by the full id including id prefix
+   // (see parseCode for description of line objects)
    ParsonsWidget.prototype.getLineById = function(id) {
      var index = -1;
      for (var i = 0; i < this.modified_lines.length; i++) {
