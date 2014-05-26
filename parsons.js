@@ -710,7 +710,9 @@
    // Does not use the current object (this) ro make changes to 
    // the parameter.
    // Returns a new array of line objects whose indent fields' values 
-   // may be different from the argument.
+   // may be different from the argument. If indentation does not match,
+   // i.e. code is malformed, value of indent may be -1.
+   // For example, the first line may not be indented.
    ParsonsWidget.prototype.normalizeIndents = function(lines) {
 
      var normalized = [];
