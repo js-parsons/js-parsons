@@ -477,7 +477,10 @@
     }
    };
       
-   //Public methods
+   ////Public methods
+
+   // Create a line object skeleton with only code and indentation from
+   // a code string of an assignment definition string (see parseCode)
    ParsonsWidget.prototype.parseLine = function(spacePrefixedLine) {
      return {
        // Consecutive lines to be dragged as a single block of code have strings "\\n" to
@@ -526,6 +529,7 @@
                 }
               } else {
             	// This line is part of the solution
+            	// Initialize line object with code and indentation properties
                 lineObject = that.parseLine(item);
                 if (lineObject.code.length > 0) {
                   // The line is non-empty, not just whitespace
