@@ -462,6 +462,8 @@
    //Public methods
    ParsonsWidget.prototype.parseLine = function(spacePrefixedLine) {
      return {
+       // Consecutive lines to be dragged as a single block of code have strings "\\n" to
+       // represent newlines => replace them with actual new line characters "\n"
        code: spacePrefixedLine.replace(trimRegexp, "$1").replace(/\\n/g,"\n"),
        indent: spacePrefixedLine.length - spacePrefixedLine.replace(/^\s+/,"").length
      };
@@ -476,25 +478,33 @@
    //   the lines required in the solution
    ParsonsWidget.prototype.parseCode = function(lines, max_distractors) {
      var distractors = [],
-     indented = [],
-     widgetData = [],
-     lineObject,
-     errors = [],
-     that = this;
+         indented = [],
+         widgetData = [],
+         lineObject,
+         errors = [],
+         that = this;
+     // Create line objects out of each codeline and separate
+     // lines belonging to the solution and distractor lines
      $.each(lines, function(index, item) {
               if (item.search(/#distractor\s*$/) >= 0) {
+            	// This line is a distractor
                 lineObject = {
+                  // Consecutive lines to be dragged as a single block of code have strings "\\n" to
+                  // represent newlines => replace them with actual new line characters "\n"
                   code: item.replace(/#distractor\s*$/,"").replace(trimRegexp, "$1").replace(/\\n/,"\n"),
                   indent: -1,
                   distractor: true,
                   orig: index
                 };
                 if (lineObject.code.length > 0) {
+                  // The line is non-empty, not just whitespace
                   distractors.push(lineObject);
                 }
               } else {
+            	// This line is part of the solution
                 lineObject = that.parseLine(item);
                 if (lineObject.code.length > 0) {
+                  // The line is non-empty, not just whitespace
                   lineObject.distractor = false;
                   lineObject.orig = index;
                   indented.push(lineObject);
