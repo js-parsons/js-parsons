@@ -306,6 +306,7 @@
     //remove distractors from lines and add all those to the set of misplaced lines
     for (i=0; i<student_code.length; i++) {
       id = parseInt(student_code[i].id.replace(parson.id_prefix, ""), 10);
+      console.log(id)
       line = parson.getLineById(parson.id_prefix + id);
       if (line.distractor) {
         incorrectLines.push(id);
@@ -423,12 +424,16 @@
       });
    };
 
+   // Creates a parsons widget. Init must be called after creating an object.
    var ParsonsWidget = function(options) {
-	 // contains line objects of the user-draggable code 
+	 // Contains line objects of the user-draggable code.
+	 // The order is not meaningful (unchanged from the initial state) but
+	 // indent property for each line object is updated as the user moves
+	 // codelines around. (see parseCode for line object description)
      this.modified_lines = [];
-     // contains line objects of distractors, see parseCode
+     // contains line objects of distractors (see parseCode for line object description)
      this.extra_lines = [];
-     // contains line objects, see parseCode
+     // contains line objects (see parseCode for line object description)
      this.model_solution = [];
      
      //To collect statistics, feedback should not be based on this
@@ -508,11 +513,13 @@
      // Create line objects out of each codeline and separate
      // lines belonging to the solution and distractor lines
      // Fields in line objects:
-     //   code: a string of the code, may include newline charcaters and 
+     //   code: a string of the code, may include newline characters and 
      //     thus in fact represents a block of consecutive lines
      //   indent: indentation level, -1 for distractors
      //   distractor: boolean whether this is a distractor
-     //   orig: the original index of the line in the assignment definition string
+     //   orig: the original index of the line in the assignment definition string,
+     //     for distractors this is not meaningful but for lines belonging to the 
+     //     solution, this is their expected position
      $.each(lines, function(index, item) {
               if (item.search(/#distractor\s*$/) >= 0) {
             	// This line is a distractor
