@@ -306,7 +306,6 @@
     //remove distractors from lines and add all those to the set of misplaced lines
     for (i=0; i<student_code.length; i++) {
       id = parseInt(student_code[i].id.replace(parson.id_prefix, ""), 10);
-      console.log(id)
       line = parson.getLineById(parson.id_prefix + id);
       if (line.distractor) {
         incorrectLines.push(id);
