@@ -147,6 +147,21 @@
     }
     return msg;
   };
+  //Return executable code in one string
+  VariableCheckGrader.prototype._codelinesAsString = function() {
+    var student_code = this.parson.normalizeIndents(this.parson.getModifiedCode("#ul-" + this.parson.options.sortableId));
+    var executableCode = "";
+    $.each(student_code, function(index, item) {
+      // split codeblocks on br elements
+      var lines = $("#" + item.id).html().split(/<br\s*\/?>/);
+      // go through all the lines
+      for (var i = 0; i < lines.length; i++) {
+        // add indents and get the text for the line (to remove the syntax highlight html elements)
+        executableCode += python_indents[item.indent] + $("<span>" + lines[i] + "</span>").text() + "\n";
+      }
+    });
+    return executableCode;
+  };
   VariableCheckGrader.prototype.grade = function(studentcode) {
     var parson = this.parson,
         that = this,
@@ -155,7 +170,7 @@
         all_passed = true;
     $.each(parson.options.vartests, function(index, testdata) {
       var $lines = $("#sortable li");
-      var student_code = studentcode || parson._codelinesAsString();
+      var student_code = studentcode || that._codelinesAsString();
       var executableCode = (testdata.initcode || "") + "\n" + student_code + "\n" + (testdata.code || "");
       var variables, expectedVals;
       if ('variables' in testdata) {
@@ -214,14 +229,15 @@
     this.parson = parson;
   };
   graders.UnitTestGrader = UnitTestGrader;
-  // copy the line number fixer from VariableCheckGrader
+  // copy the line number fixer and code-construction from VariableCheckGrader
   UnitTestGrader.prototype.stripLinenumberIfNeeded = VariableCheckGrader.prototype.stripLinenumberIfNeeded;
+  UnitTestGrader.prototype._codelinesAsString = VariableCheckGrader.prototype._codelinesAsString;
   // do the grading
   UnitTestGrader.prototype.grade = function(studentcode) {
     var success = true,
         parson = this.parson,
         unittests = parson.options.unittests,
-        studentCode = studentcode || parson._codelinesAsString(),
+        studentCode = studentcode || this._codelinesAsString(),
         feedbackHtml = "", // HTML to be returned as feedback
         result, mainmod;
 
@@ -504,32 +520,55 @@
    //Public methods
    ParsonsWidget.prototype.parseLine = function(spacePrefixedLine) {
      return {
+       // Consecutive lines to be dragged as a single block of code have strings "\\n" to
+       // represent newlines => replace them with actual new line characters "\n"
        code: spacePrefixedLine.replace(trimRegexp, "$1").replace(/\\n/g,"\n"),
        indent: spacePrefixedLine.length - spacePrefixedLine.replace(/^\s+/,"").length
      };
    };
    
+   // Parses an assignment definition given as a string and returns and 
+   // transforms this into an object defining the assignment with line objects.
+   //
+   // lines: A string that defines the solution to the assignment and also 
+   //   any possible distractors
+   // max_distractrors: The number of distractors allowed to be included with
+   //   the lines required in the solution
    ParsonsWidget.prototype.parseCode = function(lines, max_distractors) {
      var distractors = [],
-     indented = [],
-     widgetData = [],
-     lineObject,
-     errors = [],
-     that = this;
+         indented = [],
+         widgetData = [],
+         lineObject,
+         errors = [],
+         that = this;
+     // Create line objects out of each codeline and separate
+     // lines belonging to the solution and distractor lines
+     // Fields in line objects:
+     //   code: a string of the code, may include newline charcaters and 
+     //     thus in fact represents a block of consecutive lines
+     //   indent: indentation level, -1 for distractors
+     //   distractor: boolean whether this is a distractor
+     //   orig: the original index of the line in the assignment definition string
      $.each(lines, function(index, item) {
               if (item.search(/#distractor\s*$/) >= 0) {
+            	// This line is a distractor
                 lineObject = {
+                  // Consecutive lines to be dragged as a single block of code have strings "\\n" to
+                  // represent newlines => replace them with actual new line characters "\n"
                   code: item.replace(/#distractor\s*$/,"").replace(trimRegexp, "$1").replace(/\\n/,"\n"),
                   indent: -1,
                   distractor: true,
                   orig: index
                 };
                 if (lineObject.code.length > 0) {
+                  // The line is non-empty, not just whitespace
                   distractors.push(lineObject);
                 }
               } else {
+            	// This line is part of the solution
                 lineObject = that.parseLine(item);
                 if (lineObject.code.length > 0) {
+                  // The line is non-empty, not just whitespace
                   lineObject.distractor = false;
                   lineObject.orig = index;
                   indented.push(lineObject);
@@ -537,7 +576,6 @@
               }
             });
      
-     // Normalize indents and make sure indentation is valid
      var normalized = this.normalizeIndents(indented);
      
      $.each(normalized, function(index, item) {
@@ -556,13 +594,16 @@
      }
      
      return {
+       // an array of line objects
        solution:  $.extend(true, [], normalized),
+       // an array of line objects
        distractors: $.extend(true, [], selected_distractors),
        widgetInitial: $.extend(true, [], widgetData),
        errors: errors};
    };
 
    ParsonsWidget.prototype.init = function(text) {
+	 // TODO: Error handling, parseCode may return errors in an array in property named errors.
      var initial_structures = this.parseCode(text.split("\n"), this.options.max_wrong_lines);
      this.model_solution = initial_structures.solution;
      this.extra_lines = initial_structures.distractors;
@@ -724,7 +765,13 @@
      return this.modified_lines[index];
    };
 
-   /** Does not use the current object - only the argument */
+   // Check and normalize code indentation.
+   // Does not use the current object (this) ro make changes to 
+   // the parameter.
+   // Returns a new array of line objects whose indent fields' values 
+   // may be different from the argument. If indentation does not match,
+   // i.e. code is malformed, value of indent may be -1.
+   // For example, the first line may not be indented.
    ParsonsWidget.prototype.normalizeIndents = function(lines) {
 
      var normalized = [];
@@ -832,21 +879,7 @@
    };
 
 
-  ParsonsWidget.prototype._codelinesAsString = function() {
-    var $lines = $("#" + this.options.sortableId + " li");
-    var student_code = this.normalizeIndents(this.getModifiedCode("#ul-" + this.options.sortableId));
-    var executableCode = "";
-    $.each(student_code, function(index, item) {
-      // split codeblocks on br elements
-      var lines = $("#" + item.id).html().split(/<br\s*\/?>/);
-      // go through all the lines
-      for (var i = 0; i < lines.length; i++) {
-        // add indents and get the text for the line (to remove the syntax highlight html elements)
-        executableCode += python_indents[item.indent] + $("<span>" + lines[i] + "</span>").text() + "\n";
-      }
-    });
-    return executableCode;
-  };
+
 
    /**
     * @return
