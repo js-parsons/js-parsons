@@ -518,7 +518,6 @@
               }
             });
      
-     // Normalize indents and make sure indentation is valid
      var normalized = this.normalizeIndents(indented);
      
      $.each(normalized, function(index, item) {
@@ -707,7 +706,11 @@
      return this.modified_lines[index];
    };
 
-   /** Does not use the current object - only the argument */
+   // Check and normalize code indentation.
+   // Does not use the current object (this) ro make changes to 
+   // the parameter.
+   // Returns a new array of line objects whose indent fields' values 
+   // may be different from the argument.
    ParsonsWidget.prototype.normalizeIndents = function(lines) {
 
      var normalized = [];
