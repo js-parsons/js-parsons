@@ -424,8 +424,9 @@
    };
 
    var ParsonsWidget = function(options) {
+	 // contains line objects of the user-draggable code 
      this.modified_lines = [];
-     // contains line objects of distractrors, see parseCode
+     // contains line objects of distractors, see parseCode
      this.extra_lines = [];
      // contains line objects, see parseCode
      this.model_solution = [];
