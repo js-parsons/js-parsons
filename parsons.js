@@ -425,7 +425,9 @@
 
    var ParsonsWidget = function(options) {
      this.modified_lines = [];
+     // contains line objects of distractrors, see parseCode
      this.extra_lines = [];
+     // contains line objects, see parseCode
      this.model_solution = [];
      
      //To collect statistics, feedback should not be based on this
@@ -538,12 +540,14 @@
      
      $.each(normalized, function(index, item) {
               if (item.indent < 0) {
+                // Indentation error
                 errors.push(this.translations.no_matching(normalized.orig));
               }
               widgetData.push(item);
             });
      
-     // Remove extra distractors
+     // Remove extra distractors if there are more alternative distrators 
+     // than should be shown at a time
      var permutation = this.getRandomPermutation(distractors.length);
      var selected_distractors = [];
      for (var i = 0; i < max_distractors; i++) {
@@ -552,10 +556,13 @@
      }
      
      return {
-       // an array of line objects
+       // an array of line objects specifying  the solution
        solution:  $.extend(true, [], normalized),
-       // an array of line objects
+       // an array of line objects specifying the requested number 
+       // of distractors (not all possible alternatives)
        distractors: $.extend(true, [], selected_distractors),
+       // an array of line objects specifying the initial code arrangement 
+       // given to the user to use in constructing the solution 
        widgetInitial: $.extend(true, [], widgetData),
        errors: errors};
    };
