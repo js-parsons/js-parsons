@@ -573,19 +573,7 @@
      this.model_solution = initial_structures.solution;
      this.extra_lines = initial_structures.distractors;
      this.modified_lines = initial_structures.widgetInitial;
-     this.alternatives = {};
      var that = this;
-
-     $.each(this.modified_lines, function(index, item) {
-              item.id = that.id_prefix + index;
-              item.indent = 0;
-              if (that.alternatives.hasOwnProperty(item.code)) {
-                that.alternatives[item.code].push(index);
-              } else {
-                that.alternatives[item.code] = [index];
-              }
-     });
-
    };
 
    ParsonsWidget.prototype.getHash = function(searchString) {
