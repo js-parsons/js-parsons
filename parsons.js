@@ -578,6 +578,13 @@
      this.extra_lines = initial_structures.distractors;
      this.modified_lines = initial_structures.widgetInitial;
      var that = this;
+     
+ 	 // Add ids to the line objects in the user-draggable lines
+	 $.each(this.modified_lines, function(index, item) {
+	   item.id = that.id_prefix + index;
+	   item.indent = 0;
+	 });
+
    };
 
    ParsonsWidget.prototype.getHash = function(searchString) {
