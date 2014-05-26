@@ -148,8 +148,8 @@
   };
   //Return executable code in one string
   VariableCheckGrader.prototype._codelinesAsString = function() {
-    var $lines = $("#" + this.options.sortableId + " li");
-    var student_code = this.normalizeIndents(this.getModifiedCode("#ul-" + this.options.sortableId));
+    var $lines = $("#" + this.parson.options.sortableId + " li");
+    var student_code = this.parson.normalizeIndents(this.parson.getModifiedCode("#ul-" + this.parson.options.sortableId));
     var executableCode = "";
     $.each(student_code, function(index, item) {
       // split codeblocks on br elements
@@ -228,14 +228,15 @@
   var UnitTestGrader = function(parson) {
     this.parson = parson;
   };
-  // copy the line number fixer from VariableCheckGrader
+  // copy the line number fixer and code-construction from VariableCheckGrader
   UnitTestGrader.prototype.stripLinenumberIfNeeded = VariableCheckGrader.prototype.stripLinenumberIfNeeded;
+  UnitTestGrader.prototype._codelinesAsString = VariableCheckGrader.prototype._codelinesAsString;
   // do the grading
   UnitTestGrader.prototype.grade = function() {
     var success = true,
         parson = this.parson,
         unittests = parson.options.unittests,
-        studentCode = VariableCheckGrader._codelinesAsString(),
+        studentCode = this._codelinesAsString(),
         feedbackHtml = "", // HTML to be returned as feedback
         result, mainmod;
 
