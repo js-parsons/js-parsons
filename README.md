@@ -1,4 +1,4 @@
-Parsons Programmin Puzzles
+Parsons Programming Puzzles
 ==========================
 
 Parsons programming puzzles are a type of scaffolded program construction tasks where the learner is given a set of code
