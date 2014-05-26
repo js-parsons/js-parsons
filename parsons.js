@@ -146,6 +146,22 @@
     }
     return msg;
   };
+  //Return executable code in one string
+  VariableCheckGrader.prototype._codelinesAsString = function() {
+    var $lines = $("#" + this.options.sortableId + " li");
+    var student_code = this.normalizeIndents(this.getModifiedCode("#ul-" + this.options.sortableId));
+    var executableCode = "";
+    $.each(student_code, function(index, item) {
+      // split codeblocks on br elements
+      var lines = $("#" + item.id).html().split(/<br\s*\/?>/);
+      // go through all the lines
+      for (var i = 0; i < lines.length; i++) {
+        // add indents and get the text for the line (to remove the syntax highlight html elements)
+        executableCode += python_indents[item.indent] + $("<span>" + lines[i] + "</span>").text() + "\n";
+      }
+    });
+    return executableCode;
+  };
   VariableCheckGrader.prototype.grade = function() {
     var parson = this.parson,
         that = this,
@@ -154,7 +170,7 @@
         all_passed = true;
     $.each(parson.options.vartests, function(index, testdata) {
       var $lines = $("#sortable li");
-      var student_code = parson._codelinesAsString();
+      var student_code = that._codelinesAsString();
       var executableCode = (testdata.initcode || "") + "\n" + student_code + "\n" + (testdata.code || "");
       var variables, expectedVals;
       if ('variables' in testdata) {
@@ -219,7 +235,7 @@
     var success = true,
         parson = this.parson,
         unittests = parson.options.unittests,
-        studentCode = parson._codelinesAsString(),
+        studentCode = VariableCheckGrader._codelinesAsString(),
         feedbackHtml = "", // HTML to be returned as feedback
         result, mainmod;
 
@@ -790,21 +806,7 @@
    };
 
 
-  ParsonsWidget.prototype._codelinesAsString = function() {
-    var $lines = $("#" + this.options.sortableId + " li");
-    var student_code = this.normalizeIndents(this.getModifiedCode("#ul-" + this.options.sortableId));
-    var executableCode = "";
-    $.each(student_code, function(index, item) {
-      // split codeblocks on br elements
-      var lines = $("#" + item.id).html().split(/<br\s*\/?>/);
-      // go through all the lines
-      for (var i = 0; i < lines.length; i++) {
-        // add indents and get the text for the line (to remove the syntax highlight html elements)
-        executableCode += python_indents[item.indent] + $("<span>" + lines[i] + "</span>").text() + "\n";
-      }
-    });
-    return executableCode;
-  };
+
 
    /**
     * @return
