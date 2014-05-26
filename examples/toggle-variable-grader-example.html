@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+<head>
+  <title>Variable Swap</title>
+  <link rel="stylesheet" href="../parsons.css" />
+  <link rel="stylesheet" href="../lib/prettify.css" />
+  <meta charset="utf8"/>
+</head>
+<body>
+<h2>Variable Swap</h2>
+<p>Construct a program that swaps the values of variables <code>x</code> and <code>y</code> using the
+  helper variable <code>tmp</code>. You can change the names of the variables (<span class="jsparson-toggle"></span>)
+  by clicking them.</p>
+<div id="sortableTrash" class="sortable-code"><p>Trash</p></div>
+<div id="sortable" class="sortable-code"><p>Solution</p></div>
+<div style="clear:both;"></div>
+<p>
+  <a href="#" id="newInstanceLink">New instance</a>
+  <a href="#" id="feedbackLink">Get feedback</a>
+</p>
+<div id="unittest"></div>
+<script src="../lib/jquery.min.js"></script>
+<script src="../lib/jquery-ui.min.js"></script>
+<script src="../lib/underscore-min.js"></script>
+<script src="../lib/lis.js"></script>
+<script src="../parsons.js"></script>
+<script src="../lib/skulpt.js"></script>
+<script src="../lib/skulpt-stdlib.js"></script>
+<script>
+  var initial = "<span class='jsparson-toggle' data-type='xytmp'></span> = " +
+                "<span class='jsparson-toggle' data-type='xytmp'></span>\n" +
+                "<span class='jsparson-toggle' data-type='xytmp'></span> = " +
+                "<span class='jsparson-toggle' data-type='xytmp'></span>\n" +
+                "<span class='jsparson-toggle' data-type='xytmp'></span> = " +
+                "<span class='jsparson-toggle' data-type='xytmp'></span>\n";
+  $(document).ready(function(){
+    var parson = new ParsonsWidget({
+      'sortableId': 'sortable',
+      'trashId': 'sortableTrash',
+      'vartests': [{initcode: "x = 0\ny=2", code: "", message: "x = 0 ja y = 2", variables: {x: 2}},
+                   {initcode: "x = 3\ny=4\n", code: "", message: "x=3 ja y=4", variables: {x: 4, y: 3}}],
+      toggleTypeHandlers: {xytmp: ["x", "y", "tmp"]},
+      lang: "en"
+    });
+    parson.init(initial);
+    parson.shuffleLines();
+
+    $("#newInstanceLink").click(function(event){
+      event.preventDefault();
+      parson.shuffleLines();
+    });
+    $("#feedbackLink").click(function(event){
+      event.preventDefault();
+      var fb = parson.getFeedback();
+      $("#unittest").html("<h2>Feedback from testing your program:</h2>" + fb.feedback);
+      if (fb.success) { alert("Good, you solved the assignment!"); }
+    });
+  });
+</script>
+</body>
+</html>
