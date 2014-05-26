@@ -485,6 +485,12 @@
          that = this;
      // Create line objects out of each codeline and separate
      // lines belonging to the solution and distractor lines
+     // Fields in line objects:
+     //   code: a string of the code, may include newline charcaters and 
+     //     thus in fact represents a block of consecutive lines
+     //   indent: indentation level, -1 for distractors
+     //   distractor: boolean whether this is a distractor
+     //   orig: the original index of the line in the assignment definition string
      $.each(lines, function(index, item) {
               if (item.search(/#distractor\s*$/) >= 0) {
             	// This line is a distractor
@@ -531,7 +537,9 @@
      }
      
      return {
+       // an array of line objects
        solution:  $.extend(true, [], normalized),
+       // an array of line objects
        distractors: $.extend(true, [], selected_distractors),
        widgetInitial: $.extend(true, [], widgetData),
        errors: errors};
