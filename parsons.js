@@ -927,13 +927,13 @@
            if ($(event.target)[0] != ui.item.parent()[0]) {
              return;
            }
-           that.updateIndent(ui.position.left - ui.item.parent().offset().left,
+           that.updateIndent(ui.position.left - ui.item.parent().position().left,
                                        ui.item[0].id);
            that.updateHTMLIndent(ui.item[0].id);
            that.addLogEntry({type: "moveOutput", target: ui.item[0].id}, true);
          },
          receive : function(event, ui) {
-           var ind = that.updateIndent(ui.position.left - ui.item.parent().offset().left,
+           var ind = that.updateIndent(ui.position.left - ui.item.parent().position().left,
                                        ui.item[0].id);
            that.updateHTMLIndent(ui.item[0].id);
            that.addLogEntry({type: "addOutput", target: ui.item[0].id}, true);
