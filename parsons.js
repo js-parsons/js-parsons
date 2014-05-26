@@ -148,7 +148,7 @@
   };
   //Return executable code in one string
   VariableCheckGrader.prototype._codelinesAsString = function() {
-    var student_code = this.parson.normalizeIndents(this.parson.getModifiedCode("#ul-" + this.parson.options.sortableId));
+    var student_code = this.parson.getModifiedCode("#ul-" + this.parson.options.sortableId);
     var executableCode = "";
     $.each(student_code, function(index, item) {
       // split codeblocks on br elements
