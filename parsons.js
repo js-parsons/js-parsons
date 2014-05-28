@@ -10,6 +10,8 @@
          return "Ohjelma sisältää vääriä palasia tai palasten järjestys on väärä. Tämä on mahdollista korjata siirtämällä, poistamalla tai vaihtamalla korostettuja palasia.";},
        lines_missing: function() {
          return "Ohjelmassasi on liian vähän palasia, jotta se toimisi oikein.";},
+       lines_too_many: function() {
+         return "Ohjelmassasi on liian monta palasta, jotta se toimisi oikein.";},
        no_matching: function(lineNro) {
          return "Korostettu palanen (" + lineNro + ") on sisennetty kieliopin vastaisesti."; },
        no_matching_open: function(lineNro, block) {
@@ -45,6 +47,8 @@
          return "Code fragments in your program are wrong, or in wrong order. This can be fixed by moving, removing, or replacing highlighted fragments.";},
        lines_missing: function() {
          return "Your program has too few code fragments.";},
+       lines_too_many: function() {
+         return "Your program has too many code fragments.";},
        no_matching: function(lineNro) {
          return "Based on language syntax, the highlighted fragment (" + lineNro + ") is not correctly indented."; },
        no_matching_open: function(lineNro, block) {
@@ -165,7 +169,7 @@
   };
   //Return executable code in one string
   VariableCheckGrader.prototype._codelinesAsString = function() {
-    var student_code = this.parson.normalizeIndents(this.parson.getModifiedCode("#ul-" + this.parson.options.sortableId));
+    var student_code = this.parson.getModifiedCode("#ul-" + this.parson.options.sortableId);
     var executableCode = "";
     $.each(student_code, function(index, item) {
       // split codeblocks on br elements
@@ -484,28 +488,75 @@
     var student_code = parson.normalizeIndents(parson.getModifiedCode("#ul-" + elemId));
     var lines_to_check = Math.min(student_code.length, parson.model_solution.length);
     var errors = [], log_errors = [];
-    var incorrectLines = [], lines = [];
-    var id, line, i;
+    var incorrectLines = [], studentCodeLineObjects = [];
+    var i;
     var wrong_order = false;
 
-    //remove distractors from lines and add all those to the set of misplaced lines
-    for (i=0; i<student_code.length; i++) {
-      id = parseInt(student_code[i].id.replace(parson.id_prefix, ""), 10);
-      line = parson.getLineById(parson.id_prefix + id);
-      if (line.distractor) {
-        incorrectLines.push(id);
-        wrong_order = true;
-        $("#" + parson.id_prefix + id).addClass("incorrectPosition");
-      } else {
-        lines.push(id);
-      }
+    // Find the line objects for the student's code
+    for (i = 0; i < student_code.length; i++) {
+      studentCodeLineObjects.push($.extend(true, 
+    	                                   {domElementId: student_code[i].id}, 
+    	                                   parson.getLineById(student_code[i].id)));
     }
 
-    var inv = LIS.best_lise_inverse(lines);
-    _.each(inv, function(itemId) {
-            $("#" + parson.id_prefix + itemId).addClass("incorrectPosition");
-            incorrectLines.push(itemId);
-          });
+    // This maps codeline strings to the index, at which starting from 0, we have last
+    // found this codeline. This is used to find the best indices for each 
+    // codeline in the student's code for the LIS computation and, for example,
+    // assigns appropriate indices for duplicate lines.
+    var lastFoundCodeIndex = {};
+    $.each(studentCodeLineObjects, function(index, lineObject) {
+    	// find the first matching line in the model solution
+    	// starting from where we have searched previously
+    	for (var i = (typeof(lastFoundCodeIndex[lineObject.code]) !== 'undefined') ? lastFoundCodeIndex[lineObject.code]+1 : 0; 
+    	     i < parson.model_solution.length;
+    	     i++) {
+    	  if (parson.model_solution[i].code === lineObject.code) {
+    		  // found a line in the model solution that matches the student's line
+    		  lastFoundCodeIndex[lineObject.code] = i;
+              lineObject.lisIgnore = false;
+              // This will be used in LIS computation
+        	  lineObject.position = i;
+        	  break;
+    	  }
+    	}
+    	if (i === parson.model_solution.length) {
+    	  if (typeof(lastFoundCodeIndex[lineObject.code]) === 'undefined') {
+	    	// Could not find the line in the model solution at all,
+	    	// it must be a distractor
+	    	// => add to feedback, log, and ignore in LIS computation
+	        wrong_order = true;
+	        $("#" + lineObject.id).addClass("incorrectPosition");
+	    	incorrectLines.push(lineObject.orig);
+	        lineObject.lisIgnore = true;
+	      } else {
+	        // The line is part of the solution but there are now
+	    	// too many instances of the same line in the student's code
+	        // => Let's just have their correct position to be the same
+	    	// as the last one actually found in the solution.
+	        // LIS computation will handle such duplicates properly and
+	    	// choose only one of the equivalent positions to the LIS and
+	        // extra duplicates are left in the inverse and highlighted as
+	    	// errors.
+	        // TODO This method will not always give the most intuitive 
+	    	// highlights for lines to supposed to be moved when there are 
+	        // several extra duplicates in the student's code.
+            lineObject.lisIgnore = false;
+            lineObject.position = lastFoundCodeIndex[lineObject.code];
+	      }
+	      
+    	}
+      });
+    
+    var lisStudentCodeLineObjects = 
+      studentCodeLineObjects.filter(function (lineObject) { return !lineObject.lisIgnore; });
+    var inv = 
+      LIS.best_lise_inverse_indices(lisStudentCodeLineObjects
+    			 				    .map(function (lineObject) { return lineObject.position; }));
+    $.each(inv, function(_index, lineObjectIndex) {
+    	// Highlight the lines that could be moved to fix code as defined by the LIS computation
+        $("#" + lisStudentCodeLineObjects[lineObjectIndex].domElementId).addClass("incorrectPosition");
+        incorrectLines.push(parseInt(lisStudentCodeLineObjects[lineObjectIndex].domElementId.replace(this.id_prefix, ""), 10));
+      });
     if (inv.length > 0 || errors.length > 0) {
       wrong_order = true;
       log_errors.push({type: "incorrectPosition", lines: incorrectLines});
@@ -515,10 +566,10 @@
       errors.push(parson.translations.order());
     }
 
-    // Always show this feedback
+    // Check the number of lines in student's code
     if (parson.model_solution.length < student_code.length) {
-      //$("#ul-" + elemId).addClass("incorrect");
-      //errors.push("Too many lines in your solution.");
+      $("#ul-" + elemId).addClass("incorrect");
+      errors.push(parson.translations.lines_too_many());
       log_errors.push({type: "tooManyLines", lines: student_code.length});
     } else if (parson.model_solution.length > student_code.length){
       $("#ul-" + elemId).addClass("incorrect");
@@ -526,7 +577,8 @@
       log_errors.push({type: "tooFewLines", lines: student_code.length});
     }
 
-    if (errors.length === 0) { // check indent if no other errors
+    // Finally, check indent if no other errors
+    if (errors.length === 0) {
       for (i = 0; i < lines_to_check; i++) {
         var code_line = student_code[i];
         var model_line = parson.model_solution[i];
@@ -608,9 +660,16 @@
       });
    };
 
+   // Creates a parsons widget. Init must be called after creating an object.
    var ParsonsWidget = function(options) {
+	 // Contains line objects of the user-draggable code.
+	 // The order is not meaningful (unchanged from the initial state) but
+	 // indent property for each line object is updated as the user moves
+	 // codelines around. (see parseCode for line object description)
      this.modified_lines = [];
+     // contains line objects of distractors (see parseCode for line object description)
      this.extra_lines = [];
+     // contains line objects (see parseCode for line object description)
      this.model_solution = [];
      
      //To collect statistics, feedback should not be based on this
@@ -666,7 +725,10 @@
    };
   ParsonsWidget._graders = graders;
       
-   //Public methods
+   ////Public methods
+
+   // Create a line object skeleton with only code and indentation from
+   // a code string of an assignment definition string (see parseCode)
    ParsonsWidget.prototype.parseLine = function(spacePrefixedLine) {
      return {
        // Consecutive lines to be dragged as a single block of code have strings "\\n" to
@@ -693,11 +755,13 @@
      // Create line objects out of each codeline and separate
      // lines belonging to the solution and distractor lines
      // Fields in line objects:
-     //   code: a string of the code, may include newline charcaters and 
+     //   code: a string of the code, may include newline characters and 
      //     thus in fact represents a block of consecutive lines
      //   indent: indentation level, -1 for distractors
      //   distractor: boolean whether this is a distractor
-     //   orig: the original index of the line in the assignment definition string
+     //   orig: the original index of the line in the assignment definition string,
+     //     for distractors this is not meaningful but for lines belonging to the 
+     //     solution, this is their expected position
      $.each(lines, function(index, item) {
               if (item.search(/#distractor\s*$/) >= 0) {
             	// This line is a distractor
@@ -715,6 +779,7 @@
                 }
               } else {
             	// This line is part of the solution
+            	// Initialize line object with code and indentation properties
                 lineObject = that.parseLine(item);
                 if (lineObject.code.length > 0) {
                   // The line is non-empty, not just whitespace
@@ -729,12 +794,14 @@
      
      $.each(normalized, function(index, item) {
               if (item.indent < 0) {
+                // Indentation error
                 errors.push(this.translations.no_matching(normalized.orig));
               }
               widgetData.push(item);
             });
      
-     // Remove extra distractors
+     // Remove extra distractors if there are more alternative distrators 
+     // than should be shown at a time
      var permutation = this.getRandomPermutation(distractors.length);
      var selected_distractors = [];
      for (var i = 0; i < max_distractors; i++) {
@@ -743,10 +810,13 @@
      }
      
      return {
-       // an array of line objects
+       // an array of line objects specifying  the solution
        solution:  $.extend(true, [], normalized),
-       // an array of line objects
+       // an array of line objects specifying the requested number 
+       // of distractors (not all possible alternatives)
        distractors: $.extend(true, [], selected_distractors),
+       // an array of line objects specifying the initial code arrangement 
+       // given to the user to use in constructing the solution 
        widgetInitial: $.extend(true, [], widgetData),
        errors: errors};
    };
@@ -757,18 +827,13 @@
      this.model_solution = initial_structures.solution;
      this.extra_lines = initial_structures.distractors;
      this.modified_lines = initial_structures.widgetInitial;
-     this.alternatives = {};
      var that = this;
-
-     $.each(this.modified_lines, function(index, item) {
-              item.id = that.id_prefix + index;
-              item.indent = 0;
-              if (that.alternatives.hasOwnProperty(item.code)) {
-                that.alternatives[item.code].push(index);
-              } else {
-                that.alternatives[item.code] = [index];
-              }
-     });
+     
+ 	 // Add ids to the line objects in the user-draggable lines
+	 $.each(this.modified_lines, function(index, item) {
+	   item.id = that.id_prefix + index;
+	   item.indent = 0;
+	 });
 
    };
 
@@ -898,11 +963,8 @@
      return new_indent;
    };
 
-   /**
-    *
-    * @param id
-    * @return
-    */
+   // Get a line object by the full id including id prefix
+   // (see parseCode for description of line objects)
    ParsonsWidget.prototype.getLineById = function(id) {
      var index = -1;
      for (var i = 0; i < this.modified_lines.length; i++) {
