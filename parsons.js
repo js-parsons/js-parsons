@@ -13,7 +13,15 @@
        lines_too_many: function() {
          return "Ohjelmassasi on liian monta palasta, jotta se toimisi oikein.";},
        no_matching: function(lineNro) {
-         return "Korostettu palanen (" + lineNro + ") on sisennetty Pythonin kieliopin vastaisesti."; },
+         return "Korostettu palanen (" + lineNro + ") on sisennetty kieliopin vastaisesti."; },
+       no_matching_open: function(lineNro, block) {
+         return "Rivillä " + lineNro + " päätettävää " + block +
+                 " lohkoa ei ole aloitettu."; },
+       no_matching_close: function(lineNro, block) {
+         return block + " lohkoa riviltä " + lineNro + " ei ole päätetty."; },
+       block_close_mismatch: function(closeLine, closeBlock, openLine, inBlock) {
+         return "Ei voi päättää lohkoa " + closeBlock + " rivillä " + closeLine +
+                " oltaessa vielä lohkossa " + inBlock + " riviltä " + openLine; },
        block_structure: function(lineNro) {
          return "Korostettu palanen (" + lineNro + ") on sisennetty väärään koodilohkoon."; },
        unittest_error: function(errormsg) {
@@ -42,7 +50,15 @@
        lines_too_many: function() {
          return "Your program has too many code fragments.";},
        no_matching: function(lineNro) {
-         return "Based on python syntax, the highlighted fragment (" + lineNro + ") is not correctly indented."; },
+         return "Based on language syntax, the highlighted fragment (" + lineNro + ") is not correctly indented."; },
+       no_matching_open: function(lineNro, block) {
+         return "The " + block + " ended on line " + lineNro + " never started."; },
+       no_matching_close: function(lineNro, block) {
+         return "Block " + block + " defined on line " + lineNro + " not ended properly";
+       },
+       block_close_mismatch: function(closeLine, closeBlock, openLine, inBlock) {
+         return "Cannot end block " + closeBlock + " on line " + closeLine + " when still inside block " + inBlock + " started on line " + openLine;
+       },
        block_structure: function(lineNro) { return "The highlighted fragment " + lineNro + " belongs to a wrong block (i.e. indentation)."; },
        unittest_error: function(errormsg) {
          return "<span class='msg'>Error in parsing/executing your program</span><br/> <span class='errormsg'>" + errormsg + "</span>";
@@ -64,7 +80,7 @@
 
   // Different graders
 
-
+  var graders = {};
   // Grader that will execute the code and check variable values after that
   // Expected and supported options:
   //  - vartests (required): array of variable test objects
@@ -82,6 +98,7 @@
   var VariableCheckGrader = function(parson) {
     this.parson = parson;
   };
+  graders.VariableCheckGrader = VariableCheckGrader;
   // Executes the given code using Skulpt and returns an object with variable
   // values of the variables given in the variables array.
   // Possible errors will be in the _error property of the returned object.
@@ -165,7 +182,7 @@
     });
     return executableCode;
   };
-  VariableCheckGrader.prototype.grade = function() {
+  VariableCheckGrader.prototype.grade = function(studentcode) {
     var parson = this.parson,
         that = this,
         feedback = "",
@@ -173,7 +190,7 @@
         all_passed = true;
     $.each(parson.options.vartests, function(index, testdata) {
       var $lines = $("#sortable li");
-      var student_code = that._codelinesAsString();
+      var student_code = studentcode || that._codelinesAsString();
       var executableCode = (testdata.initcode || "") + "\n" + student_code + "\n" + (testdata.code || "");
       var variables, expectedVals;
       if ('variables' in testdata) {
@@ -231,15 +248,16 @@
   var UnitTestGrader = function(parson) {
     this.parson = parson;
   };
+  graders.UnitTestGrader = UnitTestGrader;
   // copy the line number fixer and code-construction from VariableCheckGrader
   UnitTestGrader.prototype.stripLinenumberIfNeeded = VariableCheckGrader.prototype.stripLinenumberIfNeeded;
   UnitTestGrader.prototype._codelinesAsString = VariableCheckGrader.prototype._codelinesAsString;
   // do the grading
-  UnitTestGrader.prototype.grade = function() {
+  UnitTestGrader.prototype.grade = function(studentcode) {
     var success = true,
         parson = this.parson,
         unittests = parson.options.unittests,
-        studentCode = this._codelinesAsString(),
+        studentCode = studentcode || this._codelinesAsString(),
         feedbackHtml = "", // HTML to be returned as feedback
         result, mainmod;
 
@@ -293,10 +311,177 @@
     return { html: feedbackHtml, result: result, success: success };
   };
 
+  // Code "Translating" grader
+  var LanguageTranslationGrader = function(parson) {
+    this.parson = parson;
+  };
+  // Add the grader to the list of graders
+  graders.LanguageTranslationGrader = LanguageTranslationGrader;
+  // add open/close block definitions for pseudocode
+  var langBlocks = {};
+  LanguageTranslationGrader._languageBlocks = langBlocks;
+  // specify the blocks for the pseudo language as a simple example case
+  langBlocks.pseudo = {
+    open: {
+      "^\s*IF.*THEN\s*$": "IF", "^\s*ELSE\s*$":"IF", // IF
+      "^\s*WHILE.*DO\s*$": "WHILE", // WHILE
+      "^\s*REPEAT\s*$": "REPEAT",   // REPEAT ... UNTIL
+      "^\s*FOR.*DO\s*$": "FOR",
+      "^\s*MODULE.*\\)\s*$": "MODULE", "^\sMODULE.*RETURNS.*$": "MODULE"
+    },
+    close: {
+      "^\s*ELSE\s*$": "IF", "^\s*ENDIF\s*$": "IF", // ENDIF
+      "^\s*ENDWHILE\s*$": "WHILE",
+      "^\s*UNTIL.*\s*$": "REPEAT",
+      "^\s*ENDFOR\s*$": "FOR",
+      "^\s*ENDMODULE\s*$": "MODULE"
+    }
+  };
+  LanguageTranslationGrader.prototype.grade = function() {
+    var student_code = this.parson.normalizeIndents(
+                          this.parson.getModifiedCode("#ul-" + this.parson.options.sortableId));
+
+    // Check opening and closing blocks.
+    // The block_open and block_close are expected to be maps with regexps as properties and
+    // names of blocks as the property values. For example, a pseudocode IF..THEN..ELSE..ENDIF
+    // blocks can be defined like this:
+    //    open = {"^\s*IF.*THEN\s*$": "IF", "^\s*ELSE\s*$":"IF"};
+    //    close = {"^s*ELSE\s*$": "IF", "^\s*ENDIF\s*$": "IF"};
+    var open = this.parson.options.block_open,
+        close = this.parson.options.block_close,
+        blockErrors = [],
+        i;
+    var progLang = this.parson.options.programmingLang;
+    if (progLang && LanguageTranslationGrader._languageBlocks[progLang]) {
+      open = $.extend({}, open, LanguageTranslationGrader._languageBlocks[progLang].open);
+      close = $.extend({}, close, LanguageTranslationGrader._languageBlocks[progLang].close);
+    }
+
+    if (open && close) { // check blocks only if block definitions are given
+      var blocks = [],
+          prevIndent = 0, // keep track of previous indent inside blocks
+          minIndent = 0; // minimum indent needed inside newly opened blocks
+      // go through all student code lines
+      for (i = 0; i < student_code.length; i++) {
+        var isClose = false, // was a new blocks opened on this line
+            isOpen = false,  // was a block closed on this line
+            item = student_code[i],
+            line = $("#" + item.id).text(), // code of the line
+            topBlock, bO;
+
+        // Check if a proper indentation or the line was found in normalizeIndents
+        // -1 will mean no matching indent was found
+        if (item.indent < 0) {
+          blockErrors.push(this.parson.translations.no_matching(i + 1));
+          $("#" + item.id).addClass("incorrectIndent");
+          break; // break on error
+        }
+
+        // Go through all block closing regexps and test if they match
+        // Some lines can both close and open a block (such as else), so the
+        // closing blocks need to be handled first
+        for (var blockClose in close) {
+          if (new RegExp(blockClose).test(line)) {
+            isClose = true;
+            topBlock = blocks.pop();
+            if (!topBlock) {
+              blockErrors.push(this.parson.translations.no_matching_open(i + 1, close[blockClose]));
+              $("#" + item.id).addClass("incorrectPosition");
+            } else if (close[blockClose] !== topBlock.name) { // incorrect closing block
+              blockErrors.push(this.parson.translations.block_close_mismatch(i + 1, close[blockClose], topBlock.line, topBlock.name));
+              $("#" + item.id).addClass("incorrectPosition");
+            } else if (student_code[i].indent !== topBlock.indent) { // incorrect indent
+              blockErrors.push(this.parson.translations.no_matching(i + 1));
+              $("#" + item.id).addClass("incorrectIndent");
+            }
+            prevIndent = topBlock?topBlock.indent:0;
+            minIndent = 0;
+            break; // only one block can be closed on a single line
+          }
+        }
+        // Go through all block opening regexps and test if they match
+        for (var blockOpen in open) {
+          if (new RegExp(blockOpen).test(line)) {
+            isOpen = true;
+            bO = {name: open[blockOpen], indent: student_code[i].indent, line: i + 1, item: item};
+            blocks.push(bO);
+            prevIndent = 0;
+            minIndent = bO.indent;
+            break; // only one block can be opened on a single line
+          }
+        }
+        // if not opening or closing a block, check block indentation
+        if (!isClose && !isOpen && blocks.length > 0) {
+          // indentation should match previous indent if inside block
+          // and be greater than the indent of the block opening the block (minIndent)
+          if ((prevIndent && student_code[i].indent !== prevIndent) ||
+              student_code[i].indent <= minIndent) {
+            blockErrors.push(this.parson.translations.no_matching(i + 1));
+            $("#" + item.id).addClass("incorrectIndent");
+          }
+          prevIndent = student_code[i].indent;
+        }
+        // if we have errors, clear the blocks and exit from the loop
+        if (blockErrors.length > 0) {
+          blocks = [];
+          break;
+        }
+      }
+      // create errors for all blocks opened but not closed
+      for (i = 0; i < blocks.length; i++) {
+        blockErrors.push(this.parson.translations.no_matching_close(blocks[i].line, blocks[i].name));
+        $("#" + blocks[i].item.id).addClass("incorrectPosition");
+      }
+    }
+    // if there were errors in the blocks, give feedback and don't execute the code
+    if (blockErrors.length > 0) {
+      var feedback = "<div class='testcase fail'>",
+          fbmsg = "";
+      for (i = 0; i < blockErrors.length; i++) {
+        fbmsg += blockErrors[i] + "</br>";
+      }
+      feedback += this.parson.translations.unittest_error(fbmsg);
+      feedback += "</div>";
+      return { html: feedback, success: false };
+    }
+
+    // Replace codelines show with codelines to be executed
+    var code = this._replaceCodelines();
+    // run unit tests or variable check grader
+    if (this.parson.options.unittests) {
+      return new UnitTestGrader(this.parson).grade(code);
+    } else {
+      return new VariableCheckGrader(this.parson).grade(code);
+    }
+  };
+  // Replaces codelines in the student's solution with the codelines
+  // specified in the executable_code option of the parsons widget.
+  // The executable_code option can be an array of lines or a string (in
+  // which case it will be split on newline.
+  // For each line in the model solution, there should be a matching line
+  // in the executable_code.
+  LanguageTranslationGrader.prototype._replaceCodelines = function() {
+    var student_code = this.parson.normalizeIndents(this.parson.getModifiedCode("#ul-" +
+                          this.parson.options.sortableId)),
+        executableCodeString = "",
+        parson = this.parson,
+        executableCode = parson.options.executable_code;
+    if (typeof executableCode === "string") {
+      executableCode = executableCode.split("\n");
+    }
+    // TODO: handle toggle elements
+    $.each(student_code, function(index, item) {
+      var ind = parseInt(item.id.replace(parson.id_prefix, ''), 10);
+      executableCodeString += python_indents[item.indent] + executableCode[ind] + "\n";
+    });
+    return executableCodeString;
+  };
+
   // The "original" grader for giving line based feedback.
   var LineBasedGrader = function(parson) {
     this.parson = parson;
   };
+  graders.LineBasedGrader = LineBasedGrader;
   LineBasedGrader.prototype.grade = function(elementId) {
     var parson = this.parson;
     var elemId = elementId || parson.options.sortableId;
@@ -524,15 +709,21 @@
                               'correctIndent' : 'correctIndent',
                               'incorrectIndent' : 'incorrectIndent'};
 
-    // initialize the grader
-    if (typeof(this.options.unittests) !== "undefined") { /// unittests are specified
-      this.grader = new UnitTestGrader(this);
-    } else if (typeof(this.options.vartests) !== "undefined") { /// tests for variable values
-      this.grader = new VariableCheckGrader(this);
-    } else { // "traditional" parson feedback
-      this.grader = new LineBasedGrader(this);
+    // use grader passed as an option if defined and is a function
+    if (this.options.grader && _.isFunction(this.options.grader)) {
+      this.grader = new this.options.grader(this);
+    } else {
+      // initialize the grader
+      if (typeof(this.options.unittests) !== "undefined") { /// unittests are specified
+        this.grader = new UnitTestGrader(this);
+      } else if (typeof(this.options.vartests) !== "undefined") { /// tests for variable values
+        this.grader = new VariableCheckGrader(this);
+      } else { // "traditional" parson feedback
+        this.grader = new LineBasedGrader(this);
+      }
     }
    };
+  ParsonsWidget._graders = graders;
       
    ////Public methods
 
