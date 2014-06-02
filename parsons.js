@@ -310,7 +310,7 @@
     // Find the line objects for the student's code
     for (i = 0; i < student_code.length; i++) {
       studentCodeLineObjects.push($.extend(true, 
-    	                                   {domElementId: student_code[i].id}, 
+    	                                   {},
     	                                   parson.getLineById(student_code[i].id)));
     }
 
@@ -340,7 +340,7 @@
 	    	// it must be a distractor
 	    	// => add to feedback, log, and ignore in LIS computation
 	        wrong_order = true;
-	        $("#" + lineObject.id).addClass("incorrectPosition");
+	        lineObject.markIncorrectPosition();
 	    	incorrectLines.push(lineObject.orig);
 	        lineObject.lisIgnore = true;
 	      } else {
@@ -369,8 +369,8 @@
     			 				    .map(function (lineObject) { return lineObject.position; }));
     $.each(inv, function(_index, lineObjectIndex) {
     	// Highlight the lines that could be moved to fix code as defined by the LIS computation
-        $("#" + lisStudentCodeLineObjects[lineObjectIndex].domElementId).addClass("incorrectPosition");
-        incorrectLines.push(parseInt(lisStudentCodeLineObjects[lineObjectIndex].domElementId.replace(this.id_prefix, ""), 10));
+        lisStudentCodeLineObjects[lineObjectIndex].markIncorrectPosition();
+        incorrectLines.push(lisStudentCodeLineObjects[lineObjectIndex].orig);
       });
     if (inv.length > 0 || errors.length > 0) {
       wrong_order = true;
@@ -399,14 +399,14 @@
         var model_line = parson.model_solution[i];
         if (code_line.indent !== model_line.indent &&
              ((!parson.options.first_error_only) || errors.length === 0)) {
-          $("#" + code_line.id).addClass("incorrectIndent");
+          code_line.markIncorrectIndent();
           errors.push(parson.translations.block_structure(i+1));
           log_errors.push({type: "incorrectIndent", line: (i+1)});
         }
         if (code_line.code == model_line.code &&
              code_line.indent == model_line.indent &&
              errors.length === 0) {
-          $("#" + code_line.id).addClass("correctPosition");
+          code_line.markCorrect();
         }
       }
     }
@@ -428,9 +428,9 @@
       mathop: ["+", "-", "*", "/"],
       boolop: ["and", "or"],
       range: function($item) {
-         var min = parseFloat($item.data("min") || "0", 10),
-             max = parseFloat($item.data("max") || "10", 10),
-             step = parseFloat($item.data("step") || "1", 10),
+         var min = parseFloat($item.data("min") || "0"),
+             max = parseFloat($item.data("max") || "10"),
+             step = parseFloat($item.data("step") || "1"),
              opts = [],
              curr = min;
          while (curr <= max) {
@@ -441,6 +441,9 @@
       }
    };
    var addToggleableElements = function(widget) {
+      for (var i = 0; i < widget.modified_lines.length; i++) {
+        widget.modified_lines[i]._addToggles();
+      }
       // toggleable elements are only enabled for unit tests
       if (!widget.options.unittests && !widget.options.vartests) { return; }
       var handlers = $.extend(defaultToggleTypeHandlers, widget.options.toggleTypeHandlers),
@@ -475,7 +478,68 @@
       });
    };
 
-   // Creates a parsons widget. Init must be called after creating an object.
+  // Create a line object skeleton with only code and indentation from
+  // a code string of an assignment definition string (see parseCode)
+  var ParsonsCodeline = function(codestring, widget) {
+    this.widget = widget;
+    this.code = "";
+    this.indent = 0;
+    this._toggles = [];
+    if (codestring) {
+      // Consecutive lines to be dragged as a single block of code have strings "\\n" to
+      // represent newlines => replace them with actual new line characters "\n"
+      this.code = codestring.replace(/#distractor\s*$/, "").replace(trimRegexp, "$1").replace(/\\n/g, "\n");
+      this.indent = codestring.length - codestring.replace(/^\s+/, "").length;
+    }
+  };
+  ParsonsCodeline.prototype.elem = function() {
+    if (!this._elem) {
+      this._elem = $("#" + this.id);
+    }
+    return this._elem;
+  };
+  ParsonsCodeline.prototype.markCorrect = function() {
+    this.elem().addClass(this.widget.FEEDBACK_STYLES.correctPosition);
+  };
+  ParsonsCodeline.prototype.markIncorrectPosition = function() {
+    this.elem().addClass(this.widget.FEEDBACK_STYLES.incorrectPosition);
+  };
+  ParsonsCodeline.prototype.markIncorrectIndent = function() {
+    this.elem().addClass(this.widget.FEEDBACK_STYLES.incorrectIndent);
+  };
+  //
+  ParsonsCodeline.prototype._addToggles = function() {
+    var toggleRegexp = /\$\$toggle::.*?\$\$/g;
+    var toggles = this.code.match(toggleRegexp);
+    var that = this;
+    this._toggles = [];
+    if (toggles) {
+      var html = this.elem().html();
+      for (var i = 0; i < toggles.length; i++) {
+        var opts = toggles[i].substring(10, toggles[i].length - 2).split("::");
+        html = html.replace(toggles[i], "<span class='jsparson-toggle' data-jsp-options='" +
+                      JSON.stringify(opts) + "'></span>");
+
+      }
+      this.elem().html(html);
+      this.elem().find(".jsparson-toggle").each(function(index, item) {
+        that._toggles.push(item);
+      });
+    }
+  };
+  // Returns the number of toggleable elements in this code block
+  ParsonsCodeline.prototype.toggleCount = function() {
+    return this._toggles.length;
+  };
+  // Returns the value of the toggleable element at the given index (0-based)
+  ParsonsCodeline.prototype.toggleValue = function(index) {
+    if (index < 0 || index >= this._toggles.length) { return undefined; }
+    return this._toggles[index].textContent;
+  };
+  // expose the type for testing, extending etc
+  window.ParsonsCodeline = ParsonsCodeline;
+
+  // Creates a parsons widget. Init must be called after creating an object.
    var ParsonsWidget = function(options) {
 	 // Contains line objects of the user-draggable code.
 	 // The order is not meaningful (unchanged from the initial state) but
@@ -536,17 +600,6 @@
       
    ////Public methods
 
-   // Create a line object skeleton with only code and indentation from
-   // a code string of an assignment definition string (see parseCode)
-   ParsonsWidget.prototype.parseLine = function(spacePrefixedLine) {
-     return {
-       // Consecutive lines to be dragged as a single block of code have strings "\\n" to
-       // represent newlines => replace them with actual new line characters "\n"
-       code: spacePrefixedLine.replace(trimRegexp, "$1").replace(/\\n/g,"\n"),
-       indent: spacePrefixedLine.length - spacePrefixedLine.replace(/^\s+/,"").length
-     };
-   };
-   
    // Parses an assignment definition given as a string and returns and 
    // transforms this into an object defining the assignment with line objects.
    //
@@ -572,32 +625,26 @@
      //     for distractors this is not meaningful but for lines belonging to the 
      //     solution, this is their expected position
      $.each(lines, function(index, item) {
-              if (item.search(/#distractor\s*$/) >= 0) {
-            	// This line is a distractor
-                lineObject = {
-                  // Consecutive lines to be dragged as a single block of code have strings "\\n" to
-                  // represent newlines => replace them with actual new line characters "\n"
-                  code: item.replace(/#distractor\s*$/,"").replace(trimRegexp, "$1").replace(/\\n/,"\n"),
-                  indent: -1,
-                  distractor: true,
-                  orig: index
-                };
-                if (lineObject.code.length > 0) {
-                  // The line is non-empty, not just whitespace
-                  distractors.push(lineObject);
-                }
-              } else {
-            	// This line is part of the solution
-            	// Initialize line object with code and indentation properties
-                lineObject = that.parseLine(item);
-                if (lineObject.code.length > 0) {
-                  // The line is non-empty, not just whitespace
-                  lineObject.distractor = false;
-                  lineObject.orig = index;
-                  indented.push(lineObject);
-                }
-              }
-            });
+       lineObject = new ParsonsCodeline(item, that);
+       lineObject.orig = index;
+        if (item.search(/#distractor\s*$/) >= 0) {
+          // This line is a distractor
+          lineObject.indent = -1;
+          lineObject.distractor = true;
+          if (lineObject.code.length > 0) {
+            // The line is non-empty, not just whitespace
+            distractors.push(lineObject);
+          }
+        } else {
+          // This line is part of the solution
+          // Initialize line object with code and indentation properties
+          if (lineObject.code.length > 0) {
+            // The line is non-empty, not just whitespace
+            lineObject.distractor = false;
+            indented.push(lineObject);
+          }
+        }
+     });
      
      var normalized = this.normalizeIndents(indented);
      
@@ -631,27 +678,28 @@
    };
 
    ParsonsWidget.prototype.init = function(text) {
-	 // TODO: Error handling, parseCode may return errors in an array in property named errors.
+  	 // TODO: Error handling, parseCode may return errors in an array in property named errors.
      var initial_structures = this.parseCode(text.split("\n"), this.options.max_wrong_lines);
      this.model_solution = initial_structures.solution;
      this.extra_lines = initial_structures.distractors;
      this.modified_lines = initial_structures.widgetInitial;
-     var that = this;
+     var id_prefix = this.id_prefix;
      
- 	 // Add ids to the line objects in the user-draggable lines
-	 $.each(this.modified_lines, function(index, item) {
-	   item.id = that.id_prefix + index;
-	   item.indent = 0;
-	 });
-
+     // Add ids to the line objects in the user-draggable lines
+     $.each(this.modified_lines, function(index, item) {
+       item.id = id_prefix + index;
+       item.indent = 0;
+     });
+     this.shuffleLines();
    };
 
    ParsonsWidget.prototype.getHash = function(searchString) {
-     var ids = [];
-     var hash = [];
-     ids = $(searchString).sortable('toArray');
+     var hash = [],
+         ids = $(searchString).sortable('toArray'),
+         line;
      for (var i = 0; i < ids.length; i++) {
-       hash.push(ids[i].replace(this.id_prefix, "") + "_" + this.getLineById(ids[i]).indent);
+       line = this.getLineById(ids[i]);
+       hash.push(line.orig + "_" + line.indent);
      }
      //prefix with something to handle empty output situations
      if (hash.length === 0) {
@@ -834,11 +882,12 @@
    ParsonsWidget.prototype.getModifiedCode = function(search_string) {
      //ids of the the modified code
      var lines_to_return = [],
-          that = this;
-     $(search_string).find("li").each(function(index, item) {
-       lines_to_return.push({id: $(item).attr("id"),
-                      indent: parseInt($(item).css("margin-left"), 10)/that.options.x_indent});
-     });
+          solution_ids = $(search_string).sortable('toArray'),
+          i, item;
+     for (i = 0; i < solution_ids.length; i++) {
+       item = this.getLineById(solution_ids[i]);
+       lines_to_return.push($.extend(new ParsonsCodeline(), item));
+     }
      return lines_to_return;
    };
 
@@ -863,9 +912,7 @@
    };
 
    ParsonsWidget.prototype.updateIndentsFromHash = function(hash) {
-     var lines = [];
      var lineValues;
-     var lineObject;
      var h;
 
      if (hash === "-" || hash === "" || hash === null) {
@@ -956,7 +1003,7 @@
 
 
    ParsonsWidget.prototype.shuffleLines = function() {
-       var permutation = this.getRandomPermutation(this.modified_lines.length);
+       var permutation = (this.options.permutation?this.options.permutation:this.getRandomPermutation)(this.modified_lines.length);
        var idlist = [];
        for(var i in permutation) {
            idlist.push(this.modified_lines[permutation[i]].id);
@@ -972,7 +1019,7 @@
    ParsonsWidget.prototype.createHTMLFromHashes = function(solutionHash, trashHash) {
        var solution = this.hashToIDList(solutionHash);
        var trash = this.hashToIDList(trashHash);
-       this.createHTMLFromLists(solution,trash);
+       this.createHTMLFromLists(solution, trash);
        this.updateIndentsFromHash(solutionHash);
    };
 
