@@ -469,10 +469,23 @@
     if (typeof executableCode === "string") {
       executableCode = executableCode.split("\n");
     }
-    // TODO: handle toggle elements
+    // replace each line with in solution with the corresponding line in executable code
     $.each(student_code, function(index, item) {
       var ind = parseInt(item.id.replace(parson.id_prefix, ''), 10);
-      executableCodeString += python_indents[item.indent] + executableCode[ind] + "\n";
+
+      // Handle toggle elements. Expects the toggle areas in executable code to be marked
+      // with $$toggle$$ and there to be as many toggles in executable code than in the
+      // code shown to learner.
+      var toggleRegexp = /\$\$toggle\$\$/g;
+      var execline = executableCode[ind];
+      var toggles = execline.match(toggleRegexp);
+      if (toggles) {
+        for (var i = 0; i < toggles.length; i++) {
+          execline = execline.replace(toggles[i], item.toggleValue(i));
+        }
+      }
+      // add the modified codeline to the executable code
+      executableCodeString += python_indents[item.indent] + execline + "\n";
     });
     return executableCodeString;
   };
@@ -678,10 +691,8 @@
     }
   };
   ParsonsCodeline.prototype.elem = function() {
-    if (!this._elem) {
-      this._elem = $("#" + this.id);
-    }
-    return this._elem;
+    // the element will change on shuffle, so we should re-fetch it every time
+    return $("#" + this.id);
   };
   ParsonsCodeline.prototype.markCorrect = function() {
     this.elem().addClass(this.widget.FEEDBACK_STYLES.correctPosition);
@@ -699,11 +710,11 @@
     var that = this;
     this._toggles = [];
     if (toggles) {
-      var html = this.elem().html();
+      var html = this.code;
       for (var i = 0; i < toggles.length; i++) {
         var opts = toggles[i].substring(10, toggles[i].length - 2).split("::");
         html = html.replace(toggles[i], "<span class='jsparson-toggle' data-jsp-options='" +
-                      JSON.stringify(opts) + "'></span>");
+                      JSON.stringify(opts).replace("<", "&lt;") + "'></span>");
 
       }
       this.elem().html(html);
