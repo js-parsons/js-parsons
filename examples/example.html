@@ -49,6 +49,7 @@
                 'feedback_cb' : displayErrors
             });
             parson.init(initial);
+            parson.shuffleLines();
             $("#newInstanceLink").click(function(event){
                 event.preventDefault();
                 parson.shuffleLines();

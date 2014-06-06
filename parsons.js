@@ -892,7 +892,6 @@
        item.id = id_prefix + index;
        item.indent = 0;
      });
-     this.shuffleLines();
    };
 
    ParsonsWidget.prototype.getHash = function(searchString) {
