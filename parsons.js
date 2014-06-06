@@ -337,6 +337,14 @@
       "^\s*ENDMODULE\s*$": "MODULE"
     }
   };
+  langBlocks.java = {
+    open: {
+      "^.*\{\s*$": "block"
+    },
+    close: {
+      "^.*\}\s*$": "block"
+    }
+  };
   LanguageTranslationGrader.prototype.grade = function() {
     var student_code = this.parson.normalizeIndents(
                           this.parson.getModifiedCode("#ul-" + this.parson.options.sortableId));
