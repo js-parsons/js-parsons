@@ -27,24 +27,22 @@
 <script src="../lib/skulpt.js"></script>
 <script src="../lib/skulpt-stdlib.js"></script>
 <script>
-  var initial = "<span class='jsparson-toggle' data-type='xytmp'></span> = " +
-                "<span class='jsparson-toggle' data-type='xytmp'></span>\n" +
-                "<span class='jsparson-toggle' data-type='xytmp'></span> = " +
-                "<span class='jsparson-toggle' data-type='xytmp'></span>\n" +
-                "<span class='jsparson-toggle' data-type='xytmp'></span> = " +
-                "<span class='jsparson-toggle' data-type='xytmp'></span>\n";
+  var initial = "$$toggle::x::y::tmp$$ = " +
+                "$$toggle::x::y::tmp$$\n" +
+                "$$toggle::x::y::tmp$$ = " +
+                "$$toggle::x::y::tmp$$\n" +
+                "$$toggle::x::y::tmp$$ = " +
+                "$$toggle::x::y::tmp$$\n";
   $(document).ready(function(){
     var parson = new ParsonsWidget({
       'sortableId': 'sortable',
       'trashId': 'sortableTrash',
       'vartests': [{initcode: "x = 0\ny=2", code: "", message: "x = 0 ja y = 2", variables: {x: 2}},
                    {initcode: "x = 3\ny=4\n", code: "", message: "x=3 ja y=4", variables: {x: 4, y: 3}}],
-      toggleTypeHandlers: {xytmp: ["x", "y", "tmp"]},
       lang: "en"
     });
     parson.init(initial);
     parson.shuffleLines();
-
     $("#newInstanceLink").click(function(event){
       event.preventDefault();
       parson.shuffleLines();

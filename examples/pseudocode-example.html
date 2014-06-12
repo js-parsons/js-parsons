@@ -28,9 +28,8 @@
         <script src="../parsons.js"></script>
         <script src="../lib/skulpt.js"></script>
         <script src="../lib/skulpt-stdlib.js"></script>
-        <script src="../lib/prettify.js"></script>
         <script>
-        var initial = 'IF a < b THEN\n  min := a\nELSE\n  min := b\nENDIF';
+        var initial = 'IF a $$toggle::<::>$$ b THEN\n  min := a\nELSE\n  min := b\nENDIF';
         var parson;
 
         $(document).ready(function(){
@@ -42,7 +41,7 @@
                     {initcode: "min = None\na = 7\nb = 4\n", code: "", message: "Testing with a = 7 ja b = 4",
                       variables: {min: 4}}],
                 'grader': ParsonsWidget._graders.LanguageTranslationGrader,
-                'executable_code': "if a < b:\n" +
+                'executable_code': "if a $$toggle$$ b:\n" +
                       "min = a\n" +
                       "else:\n" +
                       "min = b\n  pass",
