@@ -149,7 +149,6 @@
   // formats a Skulpt variable to the corresponding Python value
   VariableCheckGrader.prototype.formatVariableValue = function(varValue) {
     var varType = typeof varValue;
-    console.log(varValue, varType);
     if (varType === "undefined" || varValue === null) {
       return "None";
     } else if (varType === "string") { // show strings in quotes
