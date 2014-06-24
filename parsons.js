@@ -327,14 +327,16 @@
       "^\s*WHILE.*DO\s*$": "WHILE", // WHILE
       "^\s*REPEAT\s*$": "REPEAT",   // REPEAT ... UNTIL
       "^\s*FOR.*DO\s*$": "FOR",
-      "^\s*MODULE.*\\)\s*$": "MODULE", "^\sMODULE.*RETURNS.*$": "MODULE"
+      "^\s*MODULE.*\\)\s*$": "MODULE", "^\sMODULE.*RETURNS.*$": "MODULE",
+      "^\s*DO\s*$": "DO..WHILE"
     },
     close: {
       "^\s*ELSE\s*$": "IF", "^\s*ENDIF\s*$": "IF", // ENDIF
       "^\s*ENDWHILE\s*$": "WHILE",
       "^\s*UNTIL.*\s*$": "REPEAT",
       "^\s*ENDFOR\s*$": "FOR",
-      "^\s*ENDMODULE\s*$": "MODULE"
+      "^\s*ENDMODULE\s*$": "MODULE",
+      "^\s*WHILE(?!.*DO)": "DO..WHILE"
     }
   };
   LanguageTranslationGrader.prototype.grade = function() {
@@ -476,12 +478,18 @@
       // Handle toggle elements. Expects the toggle areas in executable code to be marked
       // with $$toggle$$ and there to be as many toggles in executable code than in the
       // code shown to learner.
-      var toggleRegexp = /\$\$toggle\$\$/g;
+      var toggleRegexp = /\$\$toggle(::.*?)?\$\$/g;
       var execline = executableCode[ind];
       var toggles = execline.match(toggleRegexp);
       if (toggles) {
         for (var i = 0; i < toggles.length; i++) {
-          execline = execline.replace(toggles[i], item.toggleValue(i));
+          var opts = toggles[i].substring(10, toggles[i].length - 2).split("::");
+          if (opts.length >= 1 && opts[0] !== "$$") {
+            // replace the toggle content with Python executable version as well
+            execline = execline.replace(toggles[i], opts[item.selectedToggleIndex(i)]);
+          } else { // use the same content for the toggle in Python
+            execline = execline.replace(toggles[i], item.toggleValue(i));
+          }
         }
       }
       // add the modified codeline to the executable code
@@ -726,6 +734,14 @@
   // Returns the number of toggleable elements in this code block
   ParsonsCodeline.prototype.toggleCount = function() {
     return this._toggles.length;
+  };
+  // Returns the index of the currently selected toggle option for the
+  // toggle element at given index
+  ParsonsCodeline.prototype.selectedToggleIndex = function(index) {
+    if (index < 0 || index >= this._toggles.length) { return -1; }
+    var elem = this._toggles[index];
+    var opts = $(elem).data("jsp-options");
+    return opts.indexOf(elem.textContent);
   };
   // Returns the value of the toggleable element at the given index (0-based)
   ParsonsCodeline.prototype.toggleValue = function(index) {
