@@ -1,0 +1,96 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Example of js-parsons turtle graphics assignment</title>
+        <link href="../parsons.css" rel="stylesheet" />
+        <link href="../lib/prettify.css" rel="stylesheet" />
+        <script src="../lib/prettify.js"></script>
+        <meta charset="UTF-8" />
+    </head>
+    <body>
+        <h2>Example of js-parsons turtle graphics assignment</h2>
+        <p>Construct a program by drag&amp;dropping and reordering lines from the
+            left to the right.
+            The constructed program should draw a triangle like shown below.</p>
+        <style>
+          canvas {
+            border: 1px solid black;
+          }
+          .turtleFeedback {
+            height: 350px;
+          }
+          .turtle {
+            float: left;
+            left: 0; top: 0;
+            -webkit-transform: scale(0.5);
+            -webkit-transform-origin: 0 0;
+            height: 300px;
+            width: 350px;
+          }
+        </style>
+        <div class="turtleFeedback">
+          <div class="model turtle">
+            <h3>Model Drawing</h3>
+            <canvas id="modelCanvas" width="600" height="600"></canvas>
+          </div>
+          <div class="student turtle">
+            <h3>Your Drawing</h3>
+            <canvas id="studentCanvas" width="600" height="600"></canvas>
+          </div>
+        </div>
+        <div style="clear:both;"></div>
+        <p>
+          <a href="#" id="newInstanceLink">New instance</a>
+          <a href="#" id="feedbackLink">Get feedback</a>
+        </p>
+        <div style="clear:both;"></div>
+        <div id="sortableTrash" class="sortable-code"></div>
+        <div id="sortable" class="sortable-code"></div>
+        <div id="unittest"></div>
+        <script src="../lib/jquery.min.js"></script>
+        <script src="../lib/jquery-ui.min.js"></script>
+        <script src="../lib/underscore-min.js"></script>
+        <script src="../lib/lis.js"></script>
+        <script src="../parsons.js"></script>
+        <script src="../lib/skulpt.js"></script>
+        <script src="../lib/skulpt-stdlib.js"></script>
+        <script>
+        $(document).ready(function(){
+          var initial = 'REPEAT 3 TIMES\nforward(100)\nleft(120)\nENDREPEAT';
+          var parson;
+          Sk.canvas = "studentCanvas";
+            parson = new ParsonsWidget({
+                'sortableId': 'sortable',
+                'trashId': 'sortableTrash',
+                'max_wrong_lines': 1,
+                turtleModelCode: "modelTurtle.color(160, 160, 160)\nmodelTurtle.speed(0)\n" +
+                      "modelTurtle.forward(100)\n" +
+                      "modelTurtle.left(120)\nmodelTurtle.forward(100)\nmodelTurtle.left(120)\nmodelTurtle.forward(100)\n" +
+                        "modelTurtle.left(120)",
+                'grader': ParsonsWidget._graders.TurtleGrader,
+                'executable_code': "for i in range(0,3):\n" +
+                      "myTurtle.forward(100)\n" +
+                      "myTurtle.left(120)\n" +
+                      "pass",
+                'programmingLang': "pseudo"
+            });
+            parson.init(initial);
+            parson.shuffleLines();
+            $("#newInstanceLink").click(function(event){
+                event.preventDefault();
+                parson.shuffleLines();
+            });
+            $("#feedbackLink").click(function(event){
+                event.preventDefault();
+                var fb = parson.getFeedback();
+//                $("#unittest").html("<h2>Feedback from testing your program:</h2>" + fb.feedback);
+                if (fb.success) {
+                  alert("Great job, you solved the exercise!");
+                } else {
+                  alert("Sorry, your solution does not match the model image");
+                }
+            });
+        });
+        </script>
+    </body>
+</html>
