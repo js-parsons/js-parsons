@@ -99,34 +99,54 @@
     this.parson = parson;
   };
   graders.VariableCheckGrader = VariableCheckGrader;
+  // Executes the given Python code and returns an object with two properties:
+  //  mainmod: the result of Skulpt importMainWithBody call with the given code
+  //  output: the output of the program
+  // Note, that the Skulpt execution can throw an exception, which will not be handled
+  // by this function, so the caller should take care of that.
+  VariableCheckGrader.prototype._python_exec = function(code) {
+      var output = "";
+      // function for reading python imports with skulpt
+      function builtinRead(x) {
+        if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][x] === undefined)
+          throw "File not found: '" + x + "'";
+        return Sk.builtinFiles["files"][x];
+      }
+      // configure Skulpt
+      Sk.execLimit = this.parson.options.exec_limit || 2500; // time limit for the code to run
+      Sk.configure({
+          output: function(str) { output += str; },
+          python3: this.parson.options.python3 || false,
+          read: builtinRead
+      });
+      return {mainmod: Sk.importMainWithBody("<stdin>", false, code), output: output};
+  };
   // Executes the given code using Skulpt and returns an object with variable
   // values of the variables given in the variables array.
   // Possible errors will be in the _error property of the returned object.
   // Output of the code will be in _output property of the result.
-  // Example: this._python_exec("x=0\ny=2\nprint x", ["x", "y"])
+  // Example: this._variablesAfterExecution("x=0\ny=2\nprint x", ["x", "y"])
   //    will return object {"x": 0, "y": 2, "_output": "0"}
-  VariableCheckGrader.prototype._python_exec = function(code, variables) {
-      var output = "",
-          mainmod,
-          result = {'variables': {}},
-          varname;
-      // configure Skulpt
-      Sk.execLimit = this.parson.options.exec_limit || 2500; // time limit for the code to run
-      Sk.configure( { output: function(str) { output += str; },
-          python3: this.parson.options.python3 || false
-      } );
-      try {
-        mainmod = Sk.importMainWithBody("<stdin>", false, code);
-      } catch (e) {
-        return {"_output": output, "_error": "" + e};
-      }
-      for (var i = 0; i < variables.length; i++) {
-        varname = variables[i];
-        result.variables[varname] = mainmod.tp$getattr(varname);
-      }
-      result._output = output;
-      return result;
+  VariableCheckGrader.prototype._variablesAfterExecution = function(code, variables) {
+    var output = "",
+      execResult, mainmod,
+      result = {'variables': {}},
+      varname;
+    try {
+      execResult = this._python_exec(code);
+    } catch (e) {
+      return {"_output": output, "_error": "" + e};
+    }
+    mainmod = execResult.mainmod;
+    for (var i = 0; i < variables.length; i++) {
+      varname = variables[i];
+      result.variables[varname] = mainmod.tp$getattr(varname);
+    }
+    result._output = execResult.output;
+    return result;
   };
+  // Formats a JavaScript variable to the corresponding Python value *and*
+  // formats a Skulpt variable to the corresponding Python value
   VariableCheckGrader.prototype.formatVariableValue = function(varValue) {
     var varType = typeof varValue;
     if (varType === "undefined" || varValue === null) {
@@ -137,6 +157,12 @@
       return varValue?"True":"False";
     } else if ($.isArray(varValue)) { // JavaScript arrays
       return '[' + varValue.join(', ') + ']';
+    } else if (varType === "object" && varValue.tp$name === "number") { // Python strings
+      return varValue.v;
+    } else if (varType === "object" && varValue.tp$name === "NoneType") { // Python strings
+      return "None";
+    } else if (varType === "object" && varValue.tp$name === "bool") { // Python strings
+      return varValue.v?"True":"False";
     } else if (varType === "object" && varValue.tp$name === "str") { // Python strings
       return '"' + varValue.v + '"';
     } else if (varType === "object" && varValue.tp$name === "list") { // Python lists
@@ -189,10 +215,10 @@
         log_errors = [],
         all_passed = true;
     $.each(parson.options.vartests, function(index, testdata) {
-      var $lines = $("#sortable li");
       var student_code = studentcode || that._codelinesAsString();
       var executableCode = (testdata.initcode || "") + "\n" + student_code + "\n" + (testdata.code || "");
       var variables, expectedVals;
+
       if ('variables' in testdata) {
         variables = _.keys(testdata.variables);
         expectedVals = testdata.variables;
@@ -201,7 +227,7 @@
         expectedVals = {};
         expectedVals[testdata.variable] = testdata.expected;
       }
-      var res = that._python_exec(executableCode, variables);
+      var res = that._variablesAfterExecution(executableCode, variables);
       var testcaseFeedback = "",
           success = true,
           log_entry = {'code': testdata.code, 'msg': testdata.message},
@@ -225,7 +251,7 @@
             testcaseFeedback += parson.translations.unittest_output_assertion(expected_value, actual_value);
           } else {
             expected_value = that.formatVariableValue(expectedVals[variable]);
-            actual_value = that.formatVariableValue(res.variables[variable].v);
+            actual_value = that.formatVariableValue(res.variables[variable]);
             testcaseFeedback += parson.translations.variabletest_assertion(variable, expected_value, actual_value) + "<br/>";
           }
           log_entry.variables[variable] = {expected: expected_value, actual: actual_value};
@@ -252,6 +278,8 @@
   // copy the line number fixer and code-construction from VariableCheckGrader
   UnitTestGrader.prototype.stripLinenumberIfNeeded = VariableCheckGrader.prototype.stripLinenumberIfNeeded;
   UnitTestGrader.prototype._codelinesAsString = VariableCheckGrader.prototype._codelinesAsString;
+  // copy the python executor from VariableCheckGrager
+  UnitTestGrader.prototype._python_exec = VariableCheckGrader.prototype._python_exec;
   // do the grading
   UnitTestGrader.prototype.grade = function(studentcode) {
     var success = true,
@@ -268,20 +296,8 @@
       executableCode = parson.options.unittest_code_prepend + "\n" + executableCode;
     }
 
-    function builtinRead(x) {
-      if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][x] === undefined)
-          throw "File not found: '" + x + "'";
-      return Sk.builtinFiles["files"][x];
-    }
-
-    // configuration for Skulpt
-    Sk.execLimit = parson.options.exec_limit || 2500; // time limit for the code to run
-    Sk.configure({output: console?console.log:function() {},
-                  read: builtinRead,
-                  python3: parson.options.python3 || false
-                 });
     try {
-      mainmod = Sk.importMainWithBody("<stdin>", false, executableCode);
+      mainmod = this._python_exec(executableCode).mainmod;
       result = JSON.parse(mainmod.tp$getattr("_test_result").v);
     } catch (e) {
       result = [{status: "error", _error: e.toString() }];
