@@ -270,6 +270,71 @@
     return { html: feedback, "log_errors": log_errors, success: all_passed };
   };
 
+  // A grader to be used for exercises which draw turtle graphics.
+  // Required options:
+  //  - turtleModelCode: The code constructing the model drawing. The turtle is initialized
+  //                    to modelTurtle variable, so your code should use that variable.
+  //
+  // Options that can be specified (that is, optional):
+  //  - turtlePenDown: a boolean specifying whether or not the pen should be put down
+  //                   initially for the student constructed code
+  //  - turtleModelCanvas: ID of the canvas DOM element where the model solution will be drawn.
+  //                  Defaults to modelCanvas.
+  //  - turtleStudentCanvas: ID of the canvas DOM element where student turtle will draw.
+  //                  Defaults to studentCanvas.
+  //
+  // Grading is based on comparing the commands executed by the model and student turtle.
+  // If the executable_code option is also specified, the code on each line of that option will
+  // be executed instead of the code in the student constructed lines. Note, that the student
+  // code should use the variable myTurtle for commands to control the turtle in order for the
+  // grading to work.
+  var TurtleGrader = function(p) {
+    this.parson = p;
+    // execute the model solution turtlet path to have the target "picture" visible in the
+    // beginning
+    var modelCommands = this._executeTurtleModel();
+
+    // specify variable tests for the commands executed by the student turtlet and the model
+    var penDown = typeof p.options.turtlePenDown === "boolean"?p.options.turtlePenDown:true;
+    var vartests = [
+      {initcode: "import parsonturtle\nmyTurtle = parsonturtle.ParsonTurtle()\n" +
+        "myTurtle.speed(0.3)\nmyTurtle.pensize(3)\n" +
+        (penDown ? "" : "myTurtle.up()\n"), // set the state of the pen
+        code: "commands = myTurtle.commands()",
+        message: "", variables: {commands: modelCommands}}
+    ];
+    // set the vartests in the parson options
+    p.options.vartests = vartests;
+  };
+  // expose the grader to ParsonsWidget._graders
+  graders.TurtleGrader = TurtleGrader;
+  // copy the python execution functions from VariableCheckGrader
+  TurtleGrader.prototype._python_exec = VariableCheckGrader.prototype._python_exec;
+  TurtleGrader.prototype._variablesAfterExecution = VariableCheckGrader.prototype._variablesAfterExecution;
+  // Execute the model turtlet code
+  TurtleGrader.prototype._executeTurtleModel = function() {
+    var code = "import parsonturtle\nmodelTurtle = parsonturtle.ParsonTurtle()\n" +
+                this.parson.options.turtleModelCode +
+               "\ncommands = modelTurtle.commands()\n";
+    Sk.canvas = this.parson.options.turtleModelCanvas || "modelCanvas";
+    var result = this._variablesAfterExecution(code, ["commands"]);
+    if (!result.variables || !result.variables.commands || !result.variables.commands.v) {
+      return "None";
+    }
+    return result.variables.commands.v;
+  };
+  // grade the student solution
+  TurtleGrader.prototype.grade = function() {
+    // set the correct canvas where the turtle should draw
+    Sk.canvas = this.parson.options.turtleStudentCanvas || "studentCanvas";
+    // Pass the grading on to either the LangTranslationGrader or VariableChecker
+    if (this.parson.options.executable_code) {
+      return new LanguageTranslationGrader(this.parson).grade();
+    } else {
+      return new VariableCheckGrader(this.parson).grade();
+    }
+  };
+
   // Grader that will execute student code and Skulpt unittests
   var UnitTestGrader = function(parson) {
     this.parson = parson;
