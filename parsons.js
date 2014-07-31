@@ -157,9 +157,9 @@
       return varValue?"True":"False";
     } else if ($.isArray(varValue)) { // JavaScript arrays
       return '[' + varValue.join(', ') + ']';
-    } else if (varType === "object" && varValue.tp$name === "number") { // Python strings
+    } else if (varType === "object" && varValue.tp$name === "number") { // Python numbers
       return varValue.v;
-    } else if (varType === "object" && varValue.tp$name === "NoneType") { // Python strings
+    } else if (varType === "object" && varValue.tp$name === "NoneType") { // None
       return "None";
     } else if (varType === "object" && varValue.tp$name === "bool") { // Python strings
       return varValue.v?"True":"False";
@@ -406,14 +406,17 @@
     open: {
       "^\s*IF.*THEN\s*$": "IF", "^\s*ELSE\s*$":"IF", // IF
       "^\s*WHILE.*DO\s*$": "WHILE", // WHILE
+      "^\s*REPEAT.*TIMES\s*$": "REPEAT..TIMES",
       "^\s*REPEAT\s*$": "REPEAT",   // REPEAT ... UNTIL
       "^\s*FOR.*DO\s*$": "FOR",
-      "^\s*MODULE.*\\)\s*$": "MODULE", "^\sMODULE.*RETURNS.*$": "MODULE",
+      "^\s*FOR.*TO.*\s*$": "FOR",
+      "^\s*MODULE.*\\)\s*$": "MODULE", "^\s*MODULE.*RETURNS.*$": "MODULE",
       "^\s*DO\s*$": "DO..WHILE"
     },
     close: {
       "^\s*ELSE\s*$": "IF", "^\s*ENDIF\s*$": "IF", // ENDIF
       "^\s*ENDWHILE\s*$": "WHILE",
+      "^\s*ENDREPEAT\s*$": "REPEAT..TIMES",
       "^\s*UNTIL.*\s*$": "REPEAT",
       "^\s*ENDFOR\s*$": "FOR",
       "^\s*ENDMODULE\s*$": "MODULE",
@@ -581,8 +584,11 @@
           }
         }
       }
-      // add the modified codeline to the executable code
-      executableCodeString += python_indents[item.indent] + execline + "\n";
+      var execlines = execline.split(/<br\s*\/?>/);
+      for (i = 0; i < execlines.length; i++) {
+        // add the modified codeline to the executable code
+        executableCodeString += python_indents[item.indent] + execlines[i] + "\n";
+      }
     });
     return executableCodeString;
   };
