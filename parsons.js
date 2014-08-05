@@ -564,18 +564,18 @@
       executableCode = executableCode.split("\n");
     }
     // replace each line with in solution with the corresponding line in executable code
+    var toggleRegexp = new RegExp("\\$\\$toggle(" + parson.options.toggleSeparator + ".*?)?\\$\\$", "g");
     $.each(student_code, function(index, item) {
       var ind = parseInt(item.id.replace(parson.id_prefix, ''), 10);
 
       // Handle toggle elements. Expects the toggle areas in executable code to be marked
       // with $$toggle$$ and there to be as many toggles in executable code than in the
       // code shown to learner.
-      var toggleRegexp = /\$\$toggle(::.*?)?\$\$/g;
       var execline = executableCode[ind];
       var toggles = execline.match(toggleRegexp);
       if (toggles) {
         for (var i = 0; i < toggles.length; i++) {
-          var opts = toggles[i].substring(10, toggles[i].length - 2).split("::");
+          var opts = toggles[i].substring(10, toggles[i].length - 2).split(parson.options.toggleSeparator);
           if (opts.length >= 1 && opts[0] !== "$$") {
             // replace the toggle content with Python executable version as well
             execline = execline.replace(toggles[i], opts[item.selectedToggleIndex(i)]);
@@ -808,14 +808,14 @@
   };
   //
   ParsonsCodeline.prototype._addToggles = function() {
-    var toggleRegexp = /\$\$toggle::.*?\$\$/g;
+    var toggleRegexp = new RegExp("\\$\\$toggle(" + this.widget.options.toggleSeparator + ".*?)?\\$\\$", "g");
     var toggles = this.code.match(toggleRegexp);
     var that = this;
     this._toggles = [];
     if (toggles) {
       var html = this.code;
       for (var i = 0; i < toggles.length; i++) {
-        var opts = toggles[i].substring(10, toggles[i].length - 2).split("::");
+        var opts = toggles[i].substring(10, toggles[i].length - 2).split(this.widget.options.toggleSeparator);
         html = html.replace(toggles[i], "<span class='jsparson-toggle' data-jsp-options='" +
                       JSON.stringify(opts).replace("<", "&lt;") + "'></span>");
 
@@ -871,7 +871,8 @@
        'feedback_cb': false,
        'first_error_only': true,
        'max_wrong_lines': 10,
-       'lang': 'en'
+       'lang': 'en',
+       'toggleSeparator': '::'
      };
      
      this.options = jQuery.extend({}, defaults, options);
