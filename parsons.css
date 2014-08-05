@@ -70,7 +70,7 @@ li.correctPosition, .testcase.pass {
 .testcase .msg { font-weight: bold; }
 .testcase .error { color: red;}
 .testcase .feedback { font-weight: bolder;}
-.testcase.fail .expected, .testcase.fail .actual { 
+.testcase .fail .expected, .testcase .fail .actual {
     color: red; 
     font-weight: bolder;
 }

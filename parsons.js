@@ -244,18 +244,25 @@
         log_entry.type = "assertion";
         log_entry.variables = {};
         for (var j = 0; j < variables.length; j++) {
-          var variable = variables[j];
+          var variable = variables[j],
+              variableSuccess;
           if (variable === "__output") { // checking output of the program
             expected_value = testdata.expected;
             actual_value = res._output;
-            testcaseFeedback += parson.translations.unittest_output_assertion(expected_value, actual_value);
+            variableSuccess = (actual_value == expected_value); // should we do a strict test??
+            testcaseFeedback += "<div class='" + (variableSuccess?"pass":"fail") + "'>";
+            testcaseFeedback += parson.translations.unittest_output_assertion(expected_value, actual_value) +
+                                "</div>";
           } else {
             expected_value = that.formatVariableValue(expectedVals[variable]);
             actual_value = that.formatVariableValue(res.variables[variable]);
-            testcaseFeedback += parson.translations.variabletest_assertion(variable, expected_value, actual_value) + "<br/>";
+            variableSuccess = (actual_value == expected_value);  // should we do a strict test??
+            testcaseFeedback += "<div class='" + (variableSuccess?"pass":"fail") + "'>";
+            testcaseFeedback += parson.translations.variabletest_assertion(variable, expected_value, actual_value) +
+                                "</div>";
           }
           log_entry.variables[variable] = {expected: expected_value, actual: actual_value};
-          if (actual_value != expected_value) { // should we do a strict test??
+          if (!variableSuccess) {
             success = false;
           }
         }
