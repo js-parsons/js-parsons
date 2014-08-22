@@ -267,7 +267,7 @@
                   "'><span class='msg'>" + testdata.message + "</span><br>" +
                   testcaseFeedback + "</div>";
     });
-    return { html: feedback, "log_errors": log_errors, success: all_passed };
+    return { html: feedback, tests: log_errors, success: all_passed };
   };
 
   // A grader to be used for exercises which draw turtle graphics.
@@ -389,7 +389,7 @@
       feedbackHtml += '</div>';
     }
 
-    return { html: feedbackHtml, result: result, success: success };
+    return { html: feedbackHtml, tests: result, success: success };
   };
 
   // Code "Translating" grader
@@ -673,7 +673,7 @@
         lisStudentCodeLineObjects[lineObjectIndex].markIncorrectPosition();
         incorrectLines.push(lisStudentCodeLineObjects[lineObjectIndex].orig);
       });
-    if (inv.length > 0 || errors.length > 0) {
+    if (inv.length > 0 || incorrectLines.length > 0) {
       wrong_order = true;
       log_errors.push({type: "incorrectPosition", lines: incorrectLines});
     }
@@ -1048,7 +1048,7 @@
      }
      return $.extend(false, {'visits': visits, stepsToLast: stepsToLast}, previously);
    };
-   
+
   /**
     * Returns states of the toggles for logging purposes
     */
@@ -1277,7 +1277,7 @@
      }
      // log the feedback and return; based on the type of grader
      if ('html' in fb) { // unittest/vartests type feedback
-       this.addLogEntry({type: "feedback", errors: fb.result, success: fb.success, toggles: this._getToggleStates()});
+       this.addLogEntry({type: "feedback", tests: fb.tests, success: fb.success});
        return { feedback: fb.html, success: fb.success };
      } else {
        this.addLogEntry({type: "feedback", errors: fb.log_errors, success: fb.success});
@@ -1416,11 +1416,19 @@
          });
        sortable.sortable('option', 'connectWith', trash);
      }
-     this.addLogEntry({type: 'init', time: new Date(), bindings: this.modified_lines});
+     // Log the original codelines in the exercise in order to be able to
+     // match the input/output hashes to the code later on. We need only a
+     // few properties of the codeline objects
+     var bindings = [];
+     for (var i = 0; i < this.modified_lines.length; i++) {
+       var line = this.modified_lines[i];
+       bindings.push({code: line.code, distractor: line.distractor})
+     }
+     this.addLogEntry({type: 'init', time: new Date(), bindings: bindings});
    };
 
 
-     window['ParsonsWidget'] = ParsonsWidget;
+   window['ParsonsWidget'] = ParsonsWidget;
  }
 // allows _ and $ to be modified with noconflict without changing the globals
 // that parsons uses
