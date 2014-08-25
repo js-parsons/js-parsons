@@ -305,9 +305,9 @@
     var penDown = typeof p.options.turtlePenDown === "boolean"?p.options.turtlePenDown:true;
     var vartests = [
       {initcode: "import parsonturtle\nmyTurtle = parsonturtle.ParsonTurtle()\n" +
-        "myTurtle.speed(0.3)\nmyTurtle.pensize(3)\n" +
+        "myTurtle.speed(0.3)\nmyTurtle.pensize(3, False)\n" +
         (penDown ? "" : "myTurtle.up()\n"), // set the state of the pen
-        code: "commands = myTurtle.commands()",
+        code: (p.options.turtleTestCode?p.options.turtleTestCode:"") + "\ncommands = myTurtle.commands()",
         message: "", variables: {commands: modelCommands}}
     ];
     // set the vartests in the parson options
@@ -321,6 +321,7 @@
   // Execute the model turtlet code
   TurtleGrader.prototype._executeTurtleModel = function() {
     var code = "import parsonturtle\nmodelTurtle = parsonturtle.ParsonTurtle()\n" +
+               "modelTurtle.color(160, 160, 160, False)\n" +
                 this.parson.options.turtleModelCode +
                "\ncommands = modelTurtle.commands()\n";
     Sk.canvas = this.parson.options.turtleModelCanvas || "modelCanvas";
