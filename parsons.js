@@ -247,7 +247,7 @@
           var variable = variables[j],
               variableSuccess;
           if (variable === "__output") { // checking output of the program
-            expected_value = testdata.expected;
+            expected_value = expectedVals[variable];
             actual_value = res._output;
             variableSuccess = (actual_value == expected_value); // should we do a strict test??
             testcaseFeedback += "<div class='" + (variableSuccess?"pass":"fail") + "'>";
