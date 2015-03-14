@@ -1,0 +1,12 @@
+# Site settings
+title: js-parsons - JavaScript library for Parson's Problems
+email: your-email@domain.com
+description: "The js-parsons library helps you create Parson's problems for the web. Parson's problems are assignments where learner's task is to construct a program from given fragments of code."
+baseurl: ""
+url: "http://vkaravir.github.com/js-parsons/"
+github: "http://github.com/vkaravir/js-parsons/"
+
+# Build settings
+markdown: redcarpet
+permalink: pretty
+highlighter: pygments

@@ -1,0 +1,163 @@
+---
+layout: default
+---
+
+<div class="jumbotron">
+
+  <h1>js-parsons - a JavaScript library for Parsons Problems</h1>
+  <blockquote>Parson’s problems are assignments for learning programming where the learner has to select, order, and indent code fragments. The goal is to construct a program which fulfils the task of the assignment. That’s best explained with an example task.
+  </blockquote>
+</div>
+  <div class="first-example parsons-problem">
+    <h2>Your First Parsons Problem</h2>
+    <p><strong>Your task: </strong> Construct a <em>Python</em> program that prints strings "Hello", "Parsons", and "Problems" on their own lines. You can get feedback on your current solution with the feedback button. You should construct your program by dragging and dropping the lines to the solution area on the right.</p>
+    <div class="container">
+      <div class="row">
+        <div id="first-example-source" class="sortable-code jsparsons-source col-md-6"></div>
+        <div id="first-example-target" class="sortable-code jsparsons-target col-md-6"></div>
+      </div>
+      <div class="row">
+        <div class="col-md-6">
+          <button class="btn btn-info btn-sm btn-block reset">Reset</button>
+        </div>
+        <div class="col-md-6">
+          <button class="btn btn-info btn-sm btn-block feedback">​Feedback​</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    $(function() {
+      var parson = new ParsonsWidget({
+          'sortableId': 'first-example-target',
+          'trashId': 'first-example-source'
+      });
+      parson.init("print 'Hello\nprint 'Parsons'\nprint 'Problems!'");
+      parson.shuffleLines();
+      $(".first-example .reset").click(function(event){
+          event.preventDefault();
+          parson.shuffleLines();
+      });
+      $(".first-example .feedback").click(function(event){
+          event.preventDefault();
+          var fb = parson.getFeedback();
+          if (fb.length) {
+            alert(fb.join('\n'));
+          } else {
+            alert("Congratulations on solving your first Parsons Problem! Now read on!");
+          }
+      });
+    });
+  </script>
+
+<h2>Features</h2>
+<ul>
+  <li>Versatile feedback options:
+    <ul>
+      <li>based on absolute line order and indentation</li>
+      <li>based on code execution and variable values after execution</li>
+      <li>based on unit tests</li>
+      <li>based on the path drawn by a turtle</li>
+    </ul>
+  </li>
+  <li>Python by nature</li>
+  <li>Other programming languages can be supported (pseudo and Java come included)</li>
+  <li>Blocks of code to order instead of single lines</li>
+  <li>Code which is not part of the correct solution (aka distractors)</li>
+  <li>Toggleable parts of the code which value can be changed by the learner</li>
+</ul>
+
+<h2>Documentation</h2>
+
+<p>In the <a href="documentation">documentation</a>, you'll eventually find lots more examples (now it's mainly unfinished). The docs will also introduce you to the configuration options and the different feedback and grading options available.</p>
+
+<p>If you're not 100% convinced yet, here's another example with Pseudocode, toggleable values, and the turtle graphics grader.</p>
+<div class="turtle-example parsons-problem">
+  <h2>Example of js-parsons turtle graphics assignment</h2>
+  <p>Construct a program by drag&amp;dropping and reordering lines from the top to the bottom. The constructed program should draw a triangle like shown below. Click &nbsp;<span class="jsparson-toggle"></span>&nbsp; to select the correct value for that position.</p>
+  <div class="container">
+    <div class="row">
+      <div id="turtle-example-source" class="sortable-code jsparsons-source col-md-7"></div>
+      <div class="model turtle col-md-5">
+         <h3>Model Drawing</h3>
+         <canvas id="modelCanvas" width="400" height="400"></canvas>
+      </div>
+    </div>
+    <div class="row">
+      <div id="turtle-example-target" class="sortable-code jsparsons-target col-md-7"></div>
+      <div class="model turtle col-md-5">
+         <h3>Your Code Drawing</h3>
+         <canvas id="studentCanvas" width="400" height="400"></canvas>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-6">
+        <button class="btn btn-info btn-sm btn-block reset">Reset</button>
+      </div>
+      <div class="col-md-6">
+        <button class="btn btn-info btn-sm btn-block feedback">​Feedback​</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+<script>
+  $(document).ready(function(){
+    var initial = 'REPEAT $$toggle::2::3::4$$ TIMES\nforward(100)\nleft(120)\nENDREPEAT';
+    var parson;
+    Sk.canvas = "studentCanvas";
+      parson = new ParsonsWidget({
+          'sortableId': 'turtle-example-target',
+          'trashId': 'turtle-example-source',
+          'max_wrong_lines': 1,
+          turtleModelCode: "modelTurtle.color(160, 160, 160)\nmodelTurtle.speed(0)\n" +
+                "modelTurtle.forward(100)\n" +
+                "modelTurtle.left(120)\nmodelTurtle.forward(100)\nmodelTurtle.left(120)\nmodelTurtle.forward(100)\n" +
+                  "modelTurtle.left(120)",
+          'grader': ParsonsWidget._graders.TurtleGrader,
+          'executable_code': "for i in range(0,$$toggle$$):\n" +
+                "myTurtle.forward(100)\n" +
+                "myTurtle.left(120)\n" +
+                "pass",
+          'programmingLang': "pseudo"
+      });
+      parson.init(initial);
+      parson.shuffleLines();
+      $(".turtle-example .reset").click(function(event){
+          event.preventDefault();
+          parson.shuffleLines();
+      });
+      $(".turtle-example .feedback").click(function(event){
+          event.preventDefault();
+          var fb = parson.getFeedback();
+          if (fb.success) {
+            alert("Great job, you solved the exercise!");
+          } else {
+            alert("Sorry, your solution does not match the model image");
+          }
+      });
+  });
+</script>
+<style>
+</style>
+
+<h2>License</h2>
+<p>The library is licensed under the <a href="https://github.com/vkaravir/js-parsons/blob/master/LICENSE">MIT license</a>.</p>
+
+
+<h2>Contributing</h2>
+<p>We develop the library on <a href="https://github.com/vkaravir/js-parsons">GitHub</a>, so the best way to contribute would be to report bugs and to submit feature requests using the <a href="https://github.com/vkaravir/js-parsons/issues">issue tracker</a>. We also highly appreciate well-made pull requests :) If you are planning some major refactoring or new features, go ahead and open an issue for it so we can discuss.</p>
+
+
+<h2>Research and Publications</h2>
+<p>Development of the library has been done mainly in research projects. Publications are listed below, but if you prefer a more readable summary of the findings, check the <a href="research/">research page</a>.</p>
+
+<ul>
+  <li>Petri Ihantola and Ville Karavirta. Two-Dimensional Parson's Puzzles: The Concept, Tools, and First Observations (<a href="http://www.jite.org/documents/Vol10/JITEv10IIPp119-132Ihantola944.pdf">PDF</a>). Journal of Information Technology Education: Innovations in Practice, 10:1–14, 2011.</li>
+
+  <li>Juha Helminen, Petri Ihantola, Ville Karavirta, and Lauri Malmi. 2012. How do students solve parsons programming problems?: an analysis of interaction traces. In Proceedings of the ninth annual international conference on International computing education research (ICER '12). ACM, New York, NY, USA, 119-126. <a href="http://doi.acm.org/10.1145/2361276.2361300">DOI=10.1145/2361276.2361300</a></li>
+
+  <li>Ville Karavirta, Juha Helminen, and Petri Ihantola. 2012. A mobile learning application for parsons problems with automatic feedback. In Proceedings of the 12th Koli Calling International Conference on Computing Education Research (Koli Calling '12). ACM, New York, NY, USA, 11-18. <a href="http://doi.acm.org/10.1145/2401796.2401798">DOI=10.1145/2401796.2401798</a></li>
+
+  <li>Juha Helminen, Petri Ihantola, Ville Karavirta, and Satu Alaoutinen. 2013. How Do Students Solve Parsons Programming Problems? -- Execution-Based vs. Line-Based Feedback. In Proceedings of Learning and Teaching in Computing and Engineering (LaTiCE), 2013 <a href="http://dx.doi.org/10.1109/LaTiCE.2013.26">DOI=10.1109/LaTiCE.2013.26</a></li>
+</ul>

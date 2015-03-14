@@ -1,0 +1,10 @@
+<header class="site-header navbar navbar-default" role="navigation">
+  <div class="container">
+      <ul class="nav navbar-nav">
+        <li><a class="site-title" href="{{ site.baseurl }}/">Home</a></li>
+        {% for page in site.pages %}
+          <li><a class="page-link" href="{{ page.url | prepend: site.baseurl }}">{{ page.title }}</a></li>
+        {% endfor %}
+      </ul>
+  </div>
+</header>

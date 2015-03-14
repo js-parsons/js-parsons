@@ -1,0 +1,25 @@
+.parsons-problem {
+  padding: 10px;
+  border: 1px dashed green;
+  border-radius: 6px;
+  background: #fff;
+}
+.parsons-problem .container {
+  width: 100%;
+}
+.parsons-problem .sortable-code {
+  margin-left: 0;
+  padding-left: 15px;
+}
+.jsparsons-source {
+  margin-left: 0;
+}
+canvas {
+  width: 200px;
+  heiht: 200px;
+}
+.site-footer {
+  border-top: 1px solid black;
+  padding-top: 1em;
+  margin-top: 1em;
+}

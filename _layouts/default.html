@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+
+  {% include head.html %}
+
+    <body>
+    <!-- load jQuery before the page content so it can be used in the examples -->
+    <script src="/js/js-parsons/lib/jquery.min.js"></script>
+
+    {% include header.html %}
+
+    <div class="container">
+      {{ content }}
+    </div>
+
+    {% include footer.html %}
+
+    <script src="/js/js-parsons/lib/jquery-ui.min.js"></script>
+    <script src="/js/js-parsons/lib/skulpt.js"></script>
+    <script src="/js/js-parsons/lib/skulpt-stdlib.js"></script>
+    <script src="/js/js-parsons/lib/underscore-min.js"></script>
+    <script src="/js/js-parsons/lib/lis.js"></script>
+    <script src="/js/js-parsons/parsons.js"></script>
+    </body>
+</html>
