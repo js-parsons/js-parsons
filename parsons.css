@@ -1,6 +1,7 @@
 /** Stylesheet for the puzzles */
 
 .sortable-code {
+    position: static;
     padding-left: 0px;
     margin-left: 2%;
     float: left;
@@ -16,6 +17,12 @@
     padding-left: 0;
     margin-left: 0;
     border: 1px solid #efefff;;
+}
+.sortable-code ul:empty {
+  padding-bottom: 30px;
+}
+.sortable-code li, .sortable-code li:before, .sortable-code li:after {
+  box-sizing: content-box;
 }
 ul.output {
     background-color: #FFA;
