@@ -244,18 +244,25 @@
         log_entry.type = "assertion";
         log_entry.variables = {};
         for (var j = 0; j < variables.length; j++) {
-          var variable = variables[j];
+          var variable = variables[j],
+              variableSuccess;
           if (variable === "__output") { // checking output of the program
-            expected_value = testdata.expected;
+            expected_value = expectedVals[variable];
             actual_value = res._output;
-            testcaseFeedback += parson.translations.unittest_output_assertion(expected_value, actual_value);
+            variableSuccess = (actual_value == expected_value); // should we do a strict test??
+            testcaseFeedback += "<div class='" + (variableSuccess?"pass":"fail") + "'>";
+            testcaseFeedback += parson.translations.unittest_output_assertion(expected_value, actual_value) +
+                                "</div>";
           } else {
             expected_value = that.formatVariableValue(expectedVals[variable]);
             actual_value = that.formatVariableValue(res.variables[variable]);
-            testcaseFeedback += parson.translations.variabletest_assertion(variable, expected_value, actual_value) + "<br/>";
+            variableSuccess = (actual_value == expected_value);  // should we do a strict test??
+            testcaseFeedback += "<div class='" + (variableSuccess?"pass":"fail") + "'>";
+            testcaseFeedback += parson.translations.variabletest_assertion(variable, expected_value, actual_value) +
+                                "</div>";
           }
           log_entry.variables[variable] = {expected: expected_value, actual: actual_value};
-          if (actual_value != expected_value) { // should we do a strict test??
+          if (!variableSuccess) {
             success = false;
           }
         }
@@ -267,7 +274,7 @@
                   "'><span class='msg'>" + testdata.message + "</span><br>" +
                   testcaseFeedback + "</div>";
     });
-    return { html: feedback, "log_errors": log_errors, success: all_passed };
+    return { html: feedback, tests: log_errors, success: all_passed };
   };
 
   // A grader to be used for exercises which draw turtle graphics.
@@ -298,9 +305,9 @@
     var penDown = typeof p.options.turtlePenDown === "boolean"?p.options.turtlePenDown:true;
     var vartests = [
       {initcode: "import parsonturtle\nmyTurtle = parsonturtle.ParsonTurtle()\n" +
-        "myTurtle.speed(0.3)\nmyTurtle.pensize(3)\n" +
+        "myTurtle.speed(0.3)\nmyTurtle.pensize(3, False)\n" +
         (penDown ? "" : "myTurtle.up()\n"), // set the state of the pen
-        code: "commands = myTurtle.commands()",
+        code: (p.options.turtleTestCode?p.options.turtleTestCode:"") + "\ncommands = myTurtle.commands()",
         message: "", variables: {commands: modelCommands}}
     ];
     // set the vartests in the parson options
@@ -314,6 +321,7 @@
   // Execute the model turtlet code
   TurtleGrader.prototype._executeTurtleModel = function() {
     var code = "import parsonturtle\nmodelTurtle = parsonturtle.ParsonTurtle()\n" +
+               "modelTurtle.color(160, 160, 160, False)\n" +
                 this.parson.options.turtleModelCode +
                "\ncommands = modelTurtle.commands()\n";
     Sk.canvas = this.parson.options.turtleModelCanvas || "modelCanvas";
@@ -389,7 +397,7 @@
       feedbackHtml += '</div>';
     }
 
-    return { html: feedbackHtml, result: result, success: success };
+    return { html: feedbackHtml, tests: result, success: success };
   };
 
   // Code "Translating" grader
@@ -564,18 +572,18 @@
       executableCode = executableCode.split("\n");
     }
     // replace each line with in solution with the corresponding line in executable code
+    var toggleRegexp = new RegExp("\\$\\$toggle(" + parson.options.toggleSeparator + ".*?)?\\$\\$", "g");
     $.each(student_code, function(index, item) {
       var ind = parseInt(item.id.replace(parson.id_prefix, ''), 10);
 
       // Handle toggle elements. Expects the toggle areas in executable code to be marked
       // with $$toggle$$ and there to be as many toggles in executable code than in the
       // code shown to learner.
-      var toggleRegexp = /\$\$toggle(::.*?)?\$\$/g;
       var execline = executableCode[ind];
       var toggles = execline.match(toggleRegexp);
       if (toggles) {
         for (var i = 0; i < toggles.length; i++) {
-          var opts = toggles[i].substring(10, toggles[i].length - 2).split("::");
+          var opts = toggles[i].substring(10, toggles[i].length - 2).split(parson.options.toggleSeparator);
           if (opts.length >= 1 && opts[0] !== "$$") {
             // replace the toggle content with Python executable version as well
             execline = execline.replace(toggles[i], opts[item.selectedToggleIndex(i)]);
@@ -673,7 +681,7 @@
         lisStudentCodeLineObjects[lineObjectIndex].markIncorrectPosition();
         incorrectLines.push(lisStudentCodeLineObjects[lineObjectIndex].orig);
       });
-    if (inv.length > 0 || errors.length > 0) {
+    if (inv.length > 0 || incorrectLines.length > 0) {
       wrong_order = true;
       log_errors.push({type: "incorrectPosition", lines: incorrectLines});
     }
@@ -808,14 +816,14 @@
   };
   //
   ParsonsCodeline.prototype._addToggles = function() {
-    var toggleRegexp = /\$\$toggle::.*?\$\$/g;
+    var toggleRegexp = new RegExp("\\$\\$toggle(" + this.widget.options.toggleSeparator + ".*?)?\\$\\$", "g");
     var toggles = this.code.match(toggleRegexp);
     var that = this;
     this._toggles = [];
     if (toggles) {
       var html = this.code;
       for (var i = 0; i < toggles.length; i++) {
-        var opts = toggles[i].substring(10, toggles[i].length - 2).split("::");
+        var opts = toggles[i].substring(10, toggles[i].length - 2).split(this.widget.options.toggleSeparator);
         html = html.replace(toggles[i], "<span class='jsparson-toggle' data-jsp-options='" +
                       JSON.stringify(opts).replace("<", "&lt;") + "'></span>");
 
@@ -871,7 +879,8 @@
        'feedback_cb': false,
        'first_error_only': true,
        'max_wrong_lines': 10,
-       'lang': 'en'
+       'lang': 'en',
+       'toggleSeparator': '::'
      };
      
      this.options = jQuery.extend({}, defaults, options);
@@ -1047,7 +1056,7 @@
      }
      return $.extend(false, {'visits': visits, stepsToLast: stepsToLast}, previously);
    };
-   
+
   /**
     * Returns states of the toggles for logging purposes
     */
@@ -1276,7 +1285,7 @@
      }
      // log the feedback and return; based on the type of grader
      if ('html' in fb) { // unittest/vartests type feedback
-       this.addLogEntry({type: "feedback", errors: fb.result, success: fb.success, toggles: this._getToggleStates()});
+       this.addLogEntry({type: "feedback", tests: fb.tests, success: fb.success});
        return { feedback: fb.html, success: fb.success };
      } else {
        this.addLogEntry({type: "feedback", errors: fb.log_errors, success: fb.success});
@@ -1415,11 +1424,19 @@
          });
        sortable.sortable('option', 'connectWith', trash);
      }
-     this.addLogEntry({type: 'init', time: new Date(), bindings: this.modified_lines});
+     // Log the original codelines in the exercise in order to be able to
+     // match the input/output hashes to the code later on. We need only a
+     // few properties of the codeline objects
+     var bindings = [];
+     for (var i = 0; i < this.modified_lines.length; i++) {
+       var line = this.modified_lines[i];
+       bindings.push({code: line.code, distractor: line.distractor})
+     }
+     this.addLogEntry({type: 'init', time: new Date(), bindings: bindings});
    };
 
 
-     window['ParsonsWidget'] = ParsonsWidget;
+   window['ParsonsWidget'] = ParsonsWidget;
  }
 // allows _ and $ to be modified with noconflict without changing the globals
 // that parsons uses
