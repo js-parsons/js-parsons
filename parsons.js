@@ -778,6 +778,8 @@
              choices = $this.data("jsp-options"),
              newVal = choices[(choices.indexOf(curVal) + 1)%choices.length],
              $parent = $this.parent("li");
+         // clear existing feedback
+         widget.clearFeedback();
          // change the shown toggle element
          $this.text(newVal);
          // log the event
