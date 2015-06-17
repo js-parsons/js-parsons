@@ -878,6 +878,7 @@
      var defaults = {
        'incorrectSound': false,
        'x_indent': 50,
+       'can_indent': true,
        'feedback_cb': false,
        'first_error_only': true,
        'max_wrong_lines': 10,
@@ -1136,7 +1137,7 @@
    ParsonsWidget.prototype.updateIndent = function(leftDiff, id) {
 
      var code_line = this.getLineById(id);
-     var new_indent = code_line.indent + Math.floor(leftDiff / this.options.x_indent);
+     var new_indent = this.options.can_indent ? code_line.indent + Math.floor(leftDiff / this.options.x_indent) : 0;
      new_indent = Math.max(0, new_indent);
      code_line.indent = new_indent;
 
@@ -1403,7 +1404,7 @@
            that.updateHTMLIndent(ui.item[0].id);
            that.addLogEntry({type: "addOutput", target: ui.item[0].id}, true);
          },
-         grid : [that.options.x_indent, 1 ]
+         grid : that.options.can_indent ? [that.options.x_indent, 1 ] : false
        });
      sortable.addClass("output");
      if (this.options.trashId) {
